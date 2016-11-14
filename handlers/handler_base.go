@@ -10,7 +10,7 @@ import (
     "crypto/rand"
     "encoding/base64"
 
-	"profile/sanmateo/api/config"
+	"sanmateo/teachers/api/config"
 	"gopkg.in/redis.v3"
 	"github.com/gin-gonic/gin"
 	"github.com/dgrijalva/jwt-go"
