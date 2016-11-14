@@ -55,6 +55,8 @@ func (handler UserHandler) Create(c *gin.Context) {
 					authenticatedUser.UpdatedAt = user.UpdatedAt
 					authenticatedUser.Gender = user.Gender
 					authenticatedUser.PicUrl = user.PicUrl
+					authenticatedUser.Position = user.Position
+					authenticatedUser.ContactNo = user.ContactNo
 					authenticatedUser.Token = generateJWT(user.Email)
 					c.JSON(http.StatusCreated, authenticatedUser)
 				} else {
@@ -108,6 +110,8 @@ func (handler UserHandler) Auth(c *gin.Context) {
 					authenticatedUser.UpdatedAt = user.UpdatedAt
 					authenticatedUser.Gender = user.Gender
 					authenticatedUser.PicUrl = user.PicUrl
+					authenticatedUser.Position = user.Position
+					authenticatedUser.ContactNo = user.ContactNo
 					authenticatedUser.Token = generateJWT(email)
 					c.JSON(http.StatusOK, authenticatedUser)
 				}					
@@ -231,7 +235,7 @@ func (handler UserHandler) ForgotPassword(c *gin.Context) {
 
 func RandomString(strlen int) string {
 	rand.Seed(time.Now().UTC().UnixNano())
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWZYZ0123456789"
 	result := make([]byte, strlen)
 	for i := 0; i < strlen; i++ {
 		result[i] = chars[rand.Intn(len(chars))]

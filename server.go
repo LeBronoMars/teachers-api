@@ -60,7 +60,9 @@ func Auth(secret string) gin.HandlerFunc {
 					response := &Response{Message: err.Error()}
 					c.JSON(http.StatusUnauthorized, response)
 					c.Abort()
-				} 
+				} else {
+					fmt.Printf("\nTOKEN ---> %s", token)
+				}
 			} else {
 				response := &Response{Message: "Invalid token!"}
 				c.JSON(http.StatusUnauthorized, response)

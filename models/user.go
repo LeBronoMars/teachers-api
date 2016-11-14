@@ -9,6 +9,7 @@ type User struct {
 	BaseModel
 	FirstName  string `json:"first_name" form:"first_name" binding:"required"`
 	LastName  string `json:"last_name" form:"last_name" binding:"required"`	
+	MiddleName string `json:"middle_name" form:"middle_name" binding:"required"`
 	Email string `json:"email" form:"email" binding:"required"`
 	Address string `json:"address" form:"address" binding:"required"`
 	ContactNo string `json:"contact_no" form:"contact_no" binding:"required"`
@@ -17,6 +18,7 @@ type User struct {
 	Password string `json:"-" form:"password" binding:"required"`
 	Gender string `json:"gender" form:"gender" binding:"required"`
 	PicUrl string `json:"pic_url" form:"pic_url"`
+	Position string `json:"position" form:"position" binding:"required"`
 }
 
 func (u *User) BeforeCreate() (err error) {
