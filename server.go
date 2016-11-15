@@ -44,6 +44,13 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	private.GET("/school_year", schoolYearHandler.Index)
 	private.POST("/school_year", schoolYearHandler.Create)
 
+	//manage school
+	schoolHandler := h.NewSchoolHandler(db)
+	private.GET("/schools", schoolHandler.Index)
+	private.GET("/schools/:school_id", schoolHandler.Show)
+	private.POST("/school", schoolHandler.Create)
+	private.PUT("/schools/:school_id", schoolHandler.Update)
+
 	r.Run(fmt.Sprintf(":%s", "8080"))
 }
 
@@ -90,7 +97,8 @@ func InitDB() *gorm.DB {
 	_db.DB()
 	_db.LogMode(true)
 	_db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&m.User{},
-																&m.SchoolYear{})
+																&m.SchoolYear{},
+																&m.School{})
 	return &_db
 }
 
