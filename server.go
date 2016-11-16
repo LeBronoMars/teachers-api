@@ -53,6 +53,7 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 
 	//manage class
 	classHandler := h.NewClassHandler(db)
+	private.GET("/class", classHandler.Index)
 	private.POST("/class", classHandler.Create)
 
 	r.Run(fmt.Sprintf(":%s", "8080"))
