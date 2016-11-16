@@ -65,7 +65,7 @@ func (handler SchoolHandler) Create(c *gin.Context) {
 		if err == nil {
 			saveResult := handler.db.Create(&newSchool)
 			if saveResult.RowsAffected > 0 {
-				respond(http.StatusCreated, "New school record created.", c, false)
+				c.JSON(http.StatusCreated, newSchool)
 			} else {
 				respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 			}

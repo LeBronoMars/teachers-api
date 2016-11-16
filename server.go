@@ -51,6 +51,10 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	private.POST("/school", schoolHandler.Create)
 	private.PUT("/schools/:school_id", schoolHandler.Update)
 
+	//manage class
+	classHandler := h.NewClassHandler(db)
+	private.POST("/class", classHandler.Create)
+
 	r.Run(fmt.Sprintf(":%s", "8080"))
 }
 
