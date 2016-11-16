@@ -11,5 +11,5 @@ type QryClassSchools struct {
 	ContactNo string `json:"contact_no"`
 	Latitude float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
-
+	Remarks string `json:"remarks"`
 }
