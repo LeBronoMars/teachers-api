@@ -56,6 +56,7 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	private.GET("/class", classHandler.Index)
 	private.POST("/class", classHandler.Create)
 	private.GET("/class/:class_id", classHandler.Show)
+	private.PUT("/class/:class_id", classHandler.Update)
 
 	r.Run(fmt.Sprintf(":%s", "8080"))
 }
@@ -106,7 +107,7 @@ func InitDB() *gorm.DB {
 																&m.SchoolYear{},
 																&m.School{},
 																&m.Class{})
-	return &_db
+	return _db
 }
 
 func InitPusher() *pusher.Client {
