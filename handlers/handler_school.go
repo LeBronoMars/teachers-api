@@ -23,9 +23,9 @@ func (handler SchoolHandler) Index(c *gin.Context) {
 	
 	var query = handler.db
 
-	startParam,startParamExist := c.GetQuery("start")
-	limitParam,limitParamExist := c.GetQuery("limit")
-
+	startParam, startParamExist := c.GetQuery("start")
+	limitParam, limitParamExist := c.GetQuery("limit")
+	orderParam, orderParamExist := c.GetQuery("order")
 
 	//start param exist
 	if startParamExist {
@@ -44,6 +44,11 @@ func (handler SchoolHandler) Index(c *gin.Context) {
 	} else {
 		query = query.Limit(10)
 	}
+
+	//sort param exist
+	if orderParamExist {
+		query = query.Order(orderParam)
+	} 
 
 	query.Find(&schools)
 	c.JSON(http.StatusOK, schools)
@@ -83,7 +88,9 @@ func (handler SchoolHandler) Update(c *gin.Context) {
 		existingSchool := m.School{}
 		existingSchoolQuery := handler.db.Where("id = ?", schoolId).First(&existingSchool)
 		if existingSchoolQuery.RowsAffected > 0 {
-			if (c.PostForm("school_name") != "") {
+			if (c.PostForm("school_name") == "" && c.PostForm("school_address") == "" && c.PostForm("contact_no") == "" && c.PostForm("latitude") == "" && c.PostForm("longitude") == "") {
+				respond(http.StatusBadRequest, "Nothing to update.", c, true)
+			} else {
 				otherSchool := m.School{}
 				schoolName := c.PostForm("school_name")
 				otherSchoolNameQuery := handler.db.Where("school_name = ? AND id != ?", schoolName, schoolId).First(&otherSchool)
@@ -118,8 +125,6 @@ func (handler SchoolHandler) Update(c *gin.Context) {
 						respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
 					}
 				}
-			} else {
-				respond(http.StatusBadRequest, "Nothing to update.", c, true)
 			}
 		} else {
 			respond(http.StatusBadRequest, "School record not found.", c, true)
