@@ -98,7 +98,8 @@ func InitDB() *gorm.DB {
 	_db.LogMode(true)
 	_db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&m.User{},
 																&m.SchoolYear{},
-																&m.School{})
+																&m.School{},
+																&m.Class{})
 	return &_db
 }
 
