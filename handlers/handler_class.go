@@ -23,10 +23,12 @@ func (handler ClassHandler) Index(c *gin.Context) {
 	
 	var query = handler.db
 
-	startParam,startParamExist := c.GetQuery("start")
-	limitParam,limitParamExist := c.GetQuery("limit")
-	orderParam,orderParamExist := c.GetQuery("order")
-
+	startParam, startParamExist := c.GetQuery("start")
+	limitParam, limitParamExist := c.GetQuery("limit")
+	orderParam, orderParamExist := c.GetQuery("order")
+	sectionParam, sectionParamExist := c.GetQuery("section")
+	gradeParam, gradeParamExist := c.GetQuery("grade")
+	schoolYearParam, schoolYearParamExist := c.GetQuery("school_year")
 
 	//start param exist
 	if startParamExist {
@@ -49,6 +51,21 @@ func (handler ClassHandler) Index(c *gin.Context) {
 	//sort param exist
 	if orderParamExist {
 		query = query.Order(orderParam)
+	} 
+
+	//section param exist
+	if sectionParamExist {
+		query = query.Where("section = ?", sectionParam)
+	} 
+
+	//grade param exist
+	if gradeParamExist {
+		query = query.Where("grade_level = ?", gradeParam)
+	} 
+
+	//school year param exist
+	if schoolYearParamExist {
+		query = query.Where("school_year = ?", schoolYearParam)
 	} 
 
 	query.Find(&classess)
@@ -89,3 +106,25 @@ func (handler ClassHandler) Create(c *gin.Context) {
 	}
 	return
 }
+
+//show specic class
+func (handler ClassHandler) Show(c *gin.Context) {
+	classId, classIdErr := strconv.Atoi(c.Param("class_id"))
+
+	if (classIdErr == nil) {
+		class := m.QryClassSchools{}
+		query := handler.db.Where("class_id = ?", classId).First(&class)
+		if query.RowsAffected > 0 {
+			c.JSON(http.StatusCreated, class)
+		} else {
+			respond(http.StatusBadRequest, "Class record not found.", c, true)
+		}
+	} else {
+		respond(http.StatusBadRequest, "Invalid class id.", c, true)
+	}
+	return
+}
+
+
+
+
