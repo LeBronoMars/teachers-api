@@ -4,7 +4,8 @@ type QryClassSchools struct {
 	ClassId int `json:"class_id"`
 	GradeLevel string `json:"grade_level"`
 	Section string `json:"section"`
-	SchoolYear string `json:"school_year"`
+	SchoolYearFrom string `json:"school_year_from"`
+	SchoolYearTo string `json:"school_year_to"`
 	SchoolId int `json:"school_id"`
 	SchoolName string `json:"school_name"`
 	SchoolAddress string `json:"school_address"`
