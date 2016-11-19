@@ -43,11 +43,11 @@ type Response struct {
 }
 
 //generate JWT
-func generateJWT(username string) string {
+func generateJWT(email string) string {
 	mySigningKey := []byte(config.GetString("TOKEN_KEY"))
     claims := &jwt.StandardClaims{
     	ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-    	Issuer:    username,
+    	Issuer:    email,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString,_ := token.SignedString(mySigningKey)
@@ -160,6 +160,3 @@ func GetEndOfDay(t time.Time) time.Time {
     year, month, day := t.Date()
     return time.Date(year, month, day, 23, 59, 59, 0, t.Location())
 }
-
-
-

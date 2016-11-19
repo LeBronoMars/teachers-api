@@ -13,6 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 	m "sanmateo/teachers/api/models"
 	"sanmateo/teachers/api/config"
+	"github.com/dgrijalva/jwt-go"
 )
 
 type UserHandler struct {
@@ -37,39 +38,35 @@ func (handler UserHandler) Create(c *gin.Context) {
 		var user m.User
 		err := c.Bind(&user)
 		if err == nil {
-			existingUser := m.User{}
-			if handler.db.Where("email = ?",user.Email).First(&existingUser).RowsAffected < 1 {
-				encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
-				user.Password = encryptedPassword
-				result := handler.db.Create(&user)
-				if result.RowsAffected > 0 {
-					authenticatedUser := m.AuthenticatedUser{}
-					authenticatedUser.Id = user.Id
-					authenticatedUser.FirstName = user.FirstName
-					authenticatedUser.LastName = user.LastName
-					authenticatedUser.Status = user.Status
-					authenticatedUser.Email = user.Email
-					authenticatedUser.Address = user.Address
-					authenticatedUser.UserLevel = user.UserLevel
-					authenticatedUser.CreatedAt = user.CreatedAt
-					authenticatedUser.UpdatedAt = user.UpdatedAt
-					authenticatedUser.Gender = user.Gender
-					authenticatedUser.PicUrl = user.PicUrl
-					authenticatedUser.Position = user.Position
-					authenticatedUser.ContactNo = user.ContactNo
-					authenticatedUser.Token = generateJWT(user.Email)
-					c.JSON(http.StatusCreated, authenticatedUser)
-				} else {
-					respond(http.StatusBadRequest,result.Error.Error(),c,true)
-				}
+			existingSchool := m.School{}
+			if handler.db.Where("id = ?", user.SchoolId).First(&existingSchool).RowsAffected == 0 {
+				respond(http.StatusPreconditionFailed, "School record not found", c, true)
 			} else {
-				respond(http.StatusForbidden,"Email already taken",c,true)	
+				//check if employee no. is already in use
+				existingUser := m.User{}
+				if handler.db.Where("employee_no = ?", user.EmployeeNo).First(&existingUser).RowsAffected > 0 {
+					respond(http.StatusPreconditionFailed, "Employee no already in use.", c, true)
+				} else {
+					if handler.db.Where("email = ?", user.Email).First(&existingUser).RowsAffected < 1 {
+						encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
+						user.Password = encryptedPassword
+						result := handler.db.Create(&user)
+						if result.RowsAffected > 0 {
+							token := &JWT{Token: generateJWT(user.Email)}
+							c.JSON(http.StatusCreated, token)
+						} else {
+							respond(http.StatusBadRequest, result.Error.Error(), c , true)
+						}
+					} else {
+						respond(http.StatusForbidden, "Email already taken", c , true)	
+					}
+				}
 			}
 		} else {
 			respond(http.StatusBadRequest,err.Error(),c,true)
 		}
 	} else {
-		respond(http.StatusForbidden,"Sorry, but your session has expired!",c,true)	
+		respond(http.StatusForbidden, "Sorry, but your session has expired!", c, true)	
 	}
 	return
 }
@@ -98,22 +95,8 @@ func (handler UserHandler) Auth(c *gin.Context) {
 					respond(http.StatusBadRequest,"Account not found!",c,true)
 				} else {
 					//authentication successful
-					authenticatedUser := m.AuthenticatedUser{}
-					authenticatedUser.Id = user.Id
-					authenticatedUser.FirstName = user.FirstName
-					authenticatedUser.LastName = user.LastName
-					authenticatedUser.Status = user.Status
-					authenticatedUser.Email = user.Email
-					authenticatedUser.Address = user.Address
-					authenticatedUser.UserLevel = user.UserLevel
-					authenticatedUser.CreatedAt = user.CreatedAt
-					authenticatedUser.UpdatedAt = user.UpdatedAt
-					authenticatedUser.Gender = user.Gender
-					authenticatedUser.PicUrl = user.PicUrl
-					authenticatedUser.Position = user.Position
-					authenticatedUser.ContactNo = user.ContactNo
-					authenticatedUser.Token = generateJWT(email)
-					c.JSON(http.StatusOK, authenticatedUser)
+					token := &JWT{Token: generateJWT(user.Email)}
+					c.JSON(http.StatusCreated, token)
 				}					
 			}
 		}
@@ -155,23 +138,23 @@ func (handler UserHandler) ChangePassword (c *gin.Context) {
 
 func (handler UserHandler) ChangeProfilePic(c *gin.Context) {
 	if IsTokenValid(c) {
-		user_id,_ := strconv.Atoi(c.PostForm("user_id"))
+		user_id, _ := strconv.Atoi(c.PostForm("user_id"))
 		
-		user := m.User{}	
-		qry := handler.db.Where("id = ?",user_id).First(&user)
+		teahcher := m.Teacher{}	
+		qry := handler.db.Where("id = ?", user_id).First(&teahcher)
 		if qry.RowsAffected > 0 {
-			user.PicUrl = c.PostForm("new_pic_url")
-			res := handler.db.Save(&user)
+			teahcher.PicUrl = c.PostForm("new_pic_url")
+			res := handler.db.Save(&teahcher)
 			if res.RowsAffected > 0 {
-				respond(http.StatusOK,user.PicUrl,c,false)
+				respond(http.StatusOK, teahcher.PicUrl, c, false)
 			} else {
-				respond(http.StatusBadRequest,res.Error.Error(),c,true)	
+				respond(http.StatusBadRequest, res.Error.Error(), c, true)	
 			}
 		} else {
-			respond(http.StatusBadRequest,"User not found!",c,true)
+			respond(http.StatusBadRequest, "User not found!", c, true)
 		}
 	} else {
-		respond(http.StatusBadRequest,"Sorry, but your session has expired!",c,true)	
+		respond(http.StatusBadRequest, "Sorry, but your session has expired!", c, true)	
 	}
 	return
 }
@@ -233,6 +216,28 @@ func (handler UserHandler) ForgotPassword(c *gin.Context) {
 	return
 }
 
+func (handler UserHandler) GetUserInfo (c *gin.Context) {
+	if c.Request.Header.Get("Authorization") != "" {
+		tokenString := c.Request.Header.Get("Authorization")
+		token, err := jwt.Parse(tokenString[7 : len(tokenString)], func(token *jwt.Token) (interface{}, error) {
+		    return []byte(config.GetString("TOKEN_KEY")), nil
+		})
+		if err != nil || !token.Valid {
+			respond(http.StatusUnauthorized, err.Error(), c, true)
+		} else {
+			claims, _ := token.Claims.(jwt.MapClaims)
+			user := m.User{}
+			res := handler.db.Where("email = ?", claims["iss"]).First(&user)
+			if res.RowsAffected > 0 {
+				c.JSON(http.StatusOK, user)
+			} else {
+				respond(http.StatusUnauthorized, "User record not found", c, true)
+			}
+		}
+	}
+	return
+}
+
 func RandomString(strlen int) string {
 	rand.Seed(time.Now().UTC().UnixNano())
 	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWZYZ0123456789"
@@ -241,4 +246,8 @@ func RandomString(strlen int) string {
 		result[i] = chars[rand.Intn(len(chars))]
 	}
 	return string(result)
+}
+
+type JWT struct {
+	Token string `json:"token"`
 }

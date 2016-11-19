@@ -25,6 +25,9 @@ func main() {
 }
 
 func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
+	publicWithBasicAuth := r.Group("/api/v1", gin.BasicAuth(gin.Accounts{
+		"admin@avinnovz.com" : "P@ssw0rd",
+		}))
 	public := r.Group("/api/v1")
 	private := r.Group("/api/v1")
 	private.Use(Auth(config.GetString("TOKEN_KEY")))
@@ -37,6 +40,7 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	private.PUT("/change_password", userHandler.ChangePassword)
 	private.PUT("/change_profile_pic", userHandler.ChangeProfilePic)
 	private.GET("/users/:user_id", userHandler.GetUserById)
+	private.GET("/me", userHandler.GetUserInfo)
 	public.POST("/forgot_password", userHandler.ForgotPassword)
 
 	//manage school years
@@ -46,10 +50,10 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 
 	//manage school
 	schoolHandler := h.NewSchoolHandler(db)
-	private.GET("/schools", schoolHandler.Index)
-	private.GET("/schools/:school_id", schoolHandler.Show)
-	private.POST("/school", schoolHandler.Create)
-	private.PUT("/schools/:school_id", schoolHandler.Update)
+	publicWithBasicAuth.GET("/schools", schoolHandler.Index)
+	publicWithBasicAuth.GET("/schools/:school_id", schoolHandler.Show)
+	publicWithBasicAuth.POST("/school", schoolHandler.Create)
+	publicWithBasicAuth.PUT("/schools/:school_id", schoolHandler.Update)
 
 	//manage class
 	classHandler := h.NewClassHandler(db)
@@ -75,6 +79,8 @@ func Auth(secret string) gin.HandlerFunc {
 					c.JSON(http.StatusUnauthorized, response)
 					c.Abort()
 				} else {
+					claims, _ := token.Claims.(jwt.MapClaims)
+					fmt.Printf("\nCLAIMS ---> %v", claims["iss"])
 					fmt.Printf("\nTOKEN ---> %s", token)
 				}
 			} else {
@@ -107,7 +113,7 @@ func InitDB() *gorm.DB {
 																&m.SchoolYear{},
 																&m.School{},
 																&m.Class{})
-	return _db
+	return &_db
 }
 
 func InitPusher() *pusher.Client {
