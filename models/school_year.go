@@ -2,6 +2,7 @@ package models
 
 type SchoolYear struct {
 	BaseModel
-	Year  int `json:"year" form:"year"`
+	From  int `json:"from" form:"from"`
+	To  int `json:"to" form:"to"`
 	Description  string `json:"description" form:"description"`	
 }
