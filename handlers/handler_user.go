@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
     "strings"
-    "strconv"
     "net/smtp"
     "log"
     "math/rand"
@@ -106,56 +105,76 @@ func (handler UserHandler) Auth(c *gin.Context) {
 }
 
 func (handler UserHandler) ChangePassword (c *gin.Context) {
-	if IsTokenValid(c) {
-		email := c.PostForm("email")
-		oldPassword := c.PostForm("old_password")
-		newPassword := c.PostForm("new_password")
-		user := m.User{}
-		query := handler.db.Where("email = ?",email).Find(&user)
-		
-		if query.RowsAffected > 0 {
-			decryptedPassword := decrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
-			if decryptedPassword == oldPassword {
-	 			encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), newPassword)
-				user.Password = encryptedPassword
-				result := handler.db.Save(&user)
-				if result.RowsAffected > 0 {
-					respond(http.StatusOK,"Password successfully changed!",c,false)
+	oldPassword := c.PostForm("old_password")
+	newPassword := c.PostForm("new_password")
+
+	if (oldPassword == "") {
+		respond(http.StatusPreconditionFailed, "Old pasword is required.", c, true)
+	} else if (newPassword == "") {
+		respond(http.StatusPreconditionFailed, "New password is required.", c, true)
+	} else {
+		tokenString := c.Request.Header.Get("Authorization")
+		token, err := jwt.Parse(tokenString[7 : len(tokenString)], func(token *jwt.Token) (interface{}, error) {
+		    return []byte(config.GetString("TOKEN_KEY")), nil
+		})
+		if err != nil || !token.Valid {
+			respond(http.StatusUnauthorized, err.Error(), c, true)
+		} else {
+			claims, _ := token.Claims.(jwt.MapClaims)
+			user := m.User{}
+			res := handler.db.Where("email = ?", claims["iss"]).First(&user)
+
+			if res.RowsAffected > 0 {
+				decryptedPassword := decrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
+				if decryptedPassword == oldPassword {
+		 			encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), newPassword)
+					user.Password = encryptedPassword
+					result := handler.db.Save(&user)
+					if result.RowsAffected > 0 {
+						respond(http.StatusOK, "You have successfully changed your password.", c, false)
+					} else {
+						respond(http.StatusBadRequest,"Unable to change password.", c, true)
+					}
 				} else {
-					respond(http.StatusBadRequest,"Unable to change password",c,true)
+					respond(http.StatusBadRequest,"Invalid old password.", c, true)
 				}
 			} else {
-				respond(http.StatusBadRequest,"Invalid old password",c,true)
+				respond(http.StatusBadRequest,"User not found.", c, true)
 			}
-		} else {
-			respond(http.StatusBadRequest,"User not found!",c,true)
-		}
-	} else {
-		respond(http.StatusBadRequest,"Sorry, but your session has expired!",c,true)	
-	}
+		}	
+	}	
 	return
 }
 
 func (handler UserHandler) ChangeProfilePic(c *gin.Context) {
-	if IsTokenValid(c) {
-		user_id, _ := strconv.Atoi(c.PostForm("user_id"))
-		
-		teahcher := m.Teacher{}	
-		qry := handler.db.Where("id = ?", user_id).First(&teahcher)
-		if qry.RowsAffected > 0 {
-			teahcher.PicUrl = c.PostForm("new_pic_url")
-			res := handler.db.Save(&teahcher)
-			if res.RowsAffected > 0 {
-				respond(http.StatusOK, teahcher.PicUrl, c, false)
+	tokenString := c.Request.Header.Get("Authorization")
+	token, err := jwt.Parse(tokenString[7 : len(tokenString)], func(token *jwt.Token) (interface{}, error) {
+	    return []byte(config.GetString("TOKEN_KEY")), nil
+	})
+	if err != nil || !token.Valid {
+		respond(http.StatusUnauthorized, err.Error(), c, true)
+	} else {
+		claims, _ := token.Claims.(jwt.MapClaims)
+		user := m.User{}
+		res := handler.db.Where("email = ?", claims["iss"]).First(&user)
+
+		if res.RowsAffected > 0 {
+			if c.PostForm("new_pic_url") == "" {
+				respond(http.StatusPreconditionFailed, "new pic url is required.", c, true)
 			} else {
-				respond(http.StatusBadRequest, res.Error.Error(), c, true)	
+				newPicUrl := c.PostForm("new_pic_url")
+				user.PicUrl = newPicUrl
+				result := handler.db.Save(&user)
+				if result.RowsAffected > 0 {
+					respond(http.StatusOK, newPicUrl, c, false)
+				} else {
+					respond(http.StatusBadRequest,"Unable to update profile pic.", c, true)
+				}
 			}
 		} else {
-			respond(http.StatusBadRequest, "User not found!", c, true)
+			respond(http.StatusBadRequest,"User not found.", c, true)
 		}
-	} else {
-		respond(http.StatusBadRequest, "Sorry, but your session has expired!", c, true)	
-	}
+	}	
 	return
 }
 
@@ -177,46 +196,50 @@ func (handler UserHandler) GetUserById(c *gin.Context) {
 
 func (handler UserHandler) ForgotPassword(c *gin.Context) {
 	email := c.PostForm("email")
-	user := m.User{}
-	qry := handler.db.Where("email = ?", email).First(&user)
-
-	if qry.RowsAffected > 0 {
-		from := "1sanmateo.app@gmail.com"
-		pass := "sanmateo851troy"
-
-		newPassword := RandomString(12)
-
-  		msg := "From: " + from + "\r\n" +
-           	"To: " + user.Email + "\r\n" + 
-           	"MIME-Version: 1.0" +  "\r\n" +
-           	"Content-type: text/html" + "\r\n" +
-   			"Subject: Forgot Password Request" + "\r\n\r\n" +
-			"Your new password <b>" + newPassword + "</b>. Please be sure that you'll change your password immediately." + "\r\n\r\n"
-
-		err := smtp.SendMail("smtp.gmail.com:587",
-			smtp.PlainAuth("", from, pass, "smtp.gmail.com"),
-			from, []string{user.Email}, []byte(msg))
-
-		if err != nil {
-			log.Printf("smtp error: %s", err)
-			return
-		} else {
-			encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), newPassword)
-			user.Password = encryptedPassword
-			updateResult := handler.db.Save(&user)
-			if updateResult.RowsAffected > 0 {
-				respond(http.StatusOK, "Your new password was successfully sent to your email",c,false)
-			} else {
-				respond(http.StatusBadRequest, updateResult.Error.Error(),c,true)
-			}
-		}
+	if (email == "") {
+		respond(http.StatusPreconditionFailed, "Email is required.", c, true)
 	} else {
-		respond(http.StatusBadRequest, "User record not found!",c,true)
+		user := m.User{}
+		qry := handler.db.Where("email = ?", email).First(&user)
+
+		if qry.RowsAffected > 0 {
+			from := "1sanmateo.app@gmail.com"
+			pass := "sanmateo851troy"
+
+			newPassword := RandomString(12)
+
+	  		msg := "From: " + from + "\r\n" +
+	           	"To: " + user.Email + "\r\n" + 
+	           	"MIME-Version: 1.0" +  "\r\n" +
+	           	"Content-type: text/html" + "\r\n" +
+	   			"Subject: Forgot Password Request" + "\r\n\r\n" +
+				"Your new password <b>" + newPassword + "</b>. Please be sure that you'll change your password immediately." + "\r\n\r\n"
+
+			err := smtp.SendMail("smtp.gmail.com:587",
+				smtp.PlainAuth("", from, pass, "smtp.gmail.com"),
+				from, []string{user.Email}, []byte(msg))
+
+			if err != nil {
+				log.Printf("smtp error: %s", err)
+				return
+			} else {
+				encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), newPassword)
+				user.Password = encryptedPassword
+				updateResult := handler.db.Save(&user)
+				if updateResult.RowsAffected > 0 {
+					respond(http.StatusOK, "Your new password was successfully sent to your email",c,false)
+				} else {
+					respond(http.StatusBadRequest, updateResult.Error.Error(),c,true)
+				}
+			}
+		} else {
+			respond(http.StatusBadRequest, "User record not found!",c,true)
+		}
 	}
 	return
 }
 
-func (handler UserHandler) GetUserInfo (c *gin.Context) {
+func (handler UserHandler) GetUserInfo(c *gin.Context) {
 	if c.Request.Header.Get("Authorization") != "" {
 		tokenString := c.Request.Header.Get("Authorization")
 		token, err := jwt.Parse(tokenString[7 : len(tokenString)], func(token *jwt.Token) (interface{}, error) {
