@@ -112,62 +112,50 @@ func (handler ClassHandler) Create(c *gin.Context) {
 
 //show specic class
 func (handler ClassHandler) Show(c *gin.Context) {
-	classId, classIdErr := strconv.Atoi(c.Param("class_id"))
-
-	if (classIdErr == nil) {
-		class := m.QryClassSchools{}
-		query := handler.db.Where("class_id = ?", classId).First(&class)
-		if query.RowsAffected > 0 {
-			c.JSON(http.StatusOK, class)
-		} else {
-			respond(http.StatusBadRequest, "Class record not found.", c, true)
-		}
+	class := m.QryClassSchools{}
+	query := handler.db.Where("class_id = ?", c.Param("class_id")).First(&class)
+	if query.RowsAffected > 0 {
+		c.JSON(http.StatusOK, class)
 	} else {
-		respond(http.StatusBadRequest, "Invalid class id.", c, true)
+		respond(http.StatusBadRequest, "Class record not found.", c, true)
 	}
 	return
 }
 
 //update class
 func (handler ClassHandler) Update(c *gin.Context) {
-	classId, classIdErr := strconv.Atoi(c.Param("class_id"))
+	if (c.PostForm("grade_level") == "" && c.PostForm("section") == "" && c.PostForm("remarks") == "" && c.PostForm("school") == "") {
+		respond(http.StatusBadRequest, "Nothing to update.", c, true)
+	} else {
+		class := m.Class{}
+		query := handler.db.Where("id = ?", c.Param("class_id")).First(&class)
+		if query.RowsAffected > 0 {
+			//check if class is already existing
+			existingClass := m.Class{}
+			existingClassQuery := handler.db.Where("section = ? and grade_level = ?", c.PostForm("section"), c.PostForm("grade_level")).First(&existingClass)
+			if existingClassQuery.RowsAffected == 0 {
 
-	if (classIdErr == nil) {
-		if (c.PostForm("grade_level") == "" && c.PostForm("section") == "" && c.PostForm("remarks") == "" && c.PostForm("school") == "") {
-			respond(http.StatusBadRequest, "Nothing to update.", c, true)
-		} else {
-			class := m.Class{}
-			query := handler.db.Where("id = ?", classId).First(&class)
-			if query.RowsAffected > 0 {
-				//check if class is already existing
-				existingClass := m.Class{}
-				existingClassQuery := handler.db.Where("section = ? and grade_level = ?", c.PostForm("section"), c.PostForm("grade_level")).First(&existingClass)
-				if existingClassQuery.RowsAffected == 0 {
+				if (c.PostForm("grade_level") != "") {
+					class.GradeLevel = c.PostForm("grade_level")
+				}
 
-					if (c.PostForm("grade_level") != "") {
-						class.GradeLevel = c.PostForm("grade_level")
-					}
+				if (c.PostForm("section") != "") {
+					class.Section = c.PostForm("section")
+				}
 
-					if (c.PostForm("section") != "") {
-						class.Section = c.PostForm("section")
-					}
+				updateResult := handler.db.Save(&class)
 
-					updateResult := handler.db.Save(&class)
-
-					if updateResult.RowsAffected > 0 {
-						c.JSON(http.StatusOK, class)
-					} else {
-						respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
-					}
+				if updateResult.RowsAffected > 0 {
+					c.JSON(http.StatusOK, class)
 				} else {
-					respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", class.Section, class.GradeLevel), c, true)
+					respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
 				}
 			} else {
-				respond(http.StatusBadRequest, "Class record not found.", c, true)
+				respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", class.Section, class.GradeLevel), c, true)
 			}
+		} else {
+			respond(http.StatusBadRequest, "Class record not found.", c, true)
 		}
-	} else {
-		respond(http.StatusBadRequest, "Invalid class id.", c, true)
 	}
 	return
 }

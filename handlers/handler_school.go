@@ -85,73 +85,61 @@ func (handler SchoolHandler) Create(c *gin.Context) {
 }
 
 func (handler SchoolHandler) Update(c *gin.Context) {
-	schoolId, schoolIdErr := strconv.Atoi(c.Param("school_id"))
-
-	if schoolIdErr == nil {
-		existingSchool := m.School{}
-		existingSchoolQuery := handler.db.Where("id = ?", schoolId).First(&existingSchool)
-		if existingSchoolQuery.RowsAffected > 0 {
-			if (c.PostForm("school_name") == "" && c.PostForm("school_address") == "" && c.PostForm("contact_no") == "" && c.PostForm("latitude") == "" && c.PostForm("longitude") == "") {
-				respond(http.StatusBadRequest, "Nothing to update.", c, true)
+	existingSchool := m.School{}
+	existingSchoolQuery := handler.db.Where("id = ?", c.Param("school_id")).First(&existingSchool)
+	if existingSchoolQuery.RowsAffected > 0 {
+		if (c.PostForm("school_name") == "" && c.PostForm("school_address") == "" && c.PostForm("contact_no") == "" && c.PostForm("latitude") == "" && c.PostForm("longitude") == "") {
+			respond(http.StatusBadRequest, "Nothing to update.", c, true)
+		} else {
+			otherSchool := m.School{}
+			schoolName := c.PostForm("school_name")
+			otherSchoolNameQuery := handler.db.Where("school_name = ? AND id != ?", schoolName, c.Param("school_id")).First(&otherSchool)
+			if (otherSchoolNameQuery.RowsAffected > 0) {
+				respond(http.StatusBadRequest, "School name already existing.", c, true)
 			} else {
-				otherSchool := m.School{}
-				schoolName := c.PostForm("school_name")
-				otherSchoolNameQuery := handler.db.Where("school_name = ? AND id != ?", schoolName, schoolId).First(&otherSchool)
-				if (otherSchoolNameQuery.RowsAffected > 0) {
-					respond(http.StatusBadRequest, "School name already existing.", c, true)
+				existingSchool.SchoolName = schoolName
+
+				if (c.PostForm("school_address") != "") {
+					existingSchool.SchoolAddress = c.PostForm("school_address")
+				}
+
+				if (c.PostForm("contact_no") != "") {
+					existingSchool.ContactNo = c.PostForm("contact_no")
+				}
+
+				if (c.PostForm("latitude") != "") {
+					lat, _ := strconv.ParseFloat(c.PostForm("latitude"), 32)
+					existingSchool.Latitude = lat
+				}
+
+				if (c.PostForm("longitude") != "") {
+					lon, _ := strconv.ParseFloat(c.PostForm("longitude"), 32)
+					existingSchool.Longitude = lon
+				}
+
+				updateResult := handler.db.Save(&existingSchool)
+
+				if updateResult.RowsAffected > 0 {
+					c.JSON(http.StatusOK, existingSchool)
 				} else {
-					existingSchool.SchoolName = schoolName
-
-					if (c.PostForm("school_address") != "") {
-						existingSchool.SchoolAddress = c.PostForm("school_address")
-					}
-
-					if (c.PostForm("contact_no") != "") {
-						existingSchool.ContactNo = c.PostForm("contact_no")
-					}
-
-					if (c.PostForm("latitude") != "") {
-						lat, _ := strconv.ParseFloat(c.PostForm("latitude"), 32)
-						existingSchool.Latitude = lat
-					}
-
-					if (c.PostForm("longitude") != "") {
-						lon, _ := strconv.ParseFloat(c.PostForm("longitude"), 32)
-						existingSchool.Longitude = lon
-					}
-
-					updateResult := handler.db.Save(&existingSchool)
-
-					if updateResult.RowsAffected > 0 {
-						c.JSON(http.StatusOK, existingSchool)
-					} else {
-						respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
-					}
+					respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
 				}
 			}
-		} else {
-			respond(http.StatusBadRequest, "School record not found.", c, true)
 		}
 	} else {
-		respond(http.StatusBadRequest, "Invalid school id.", c, true)
+		respond(http.StatusBadRequest, "School record not found.", c, true)
 	}
 	return
 }
 
 
 func (handler SchoolHandler) Show(c *gin.Context) {
-	schoolId, schoolIdErr := strconv.Atoi(c.Param("school_id"))
-
-	if schoolIdErr == nil {
-		existingSchool := m.School{}
-		existingSchoolQuery := handler.db.Where("id = ?", schoolId).First(&existingSchool)
-		if existingSchoolQuery.RowsAffected > 0 {
-			c.JSON(http.StatusOK, existingSchool)
-		} else {
-			respond(http.StatusBadRequest, "School record not found.", c, true)
-		}
+	existingSchool := m.School{}
+	existingSchoolQuery := handler.db.Where("id = ?", c.Param("school_id")).First(&existingSchool)
+	if existingSchoolQuery.RowsAffected > 0 {
+		c.JSON(http.StatusOK, existingSchool)
 	} else {
-		respond(http.StatusBadRequest, "Invalid school id.", c, true)
+		respond(http.StatusBadRequest, "School record not found.", c, true)
 	}
 	return
 }

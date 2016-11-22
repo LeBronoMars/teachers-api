@@ -7,7 +7,6 @@ import (
     "log"
     "math/rand"
     "time"
-    "strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -267,45 +266,39 @@ func (handler UserHandler) GetUserInfo(c *gin.Context) {
 
 //update user record
 func (handler UserHandler) Update(c *gin.Context) {
-	userId, userIdErr := strconv.Atoi(c.Param("user_id"))
-
-	if (userIdErr == nil) {
-		if (c.PostForm("first_name") == "" && c.PostForm("middle_name") == "" && 
-			c.PostForm("last_name") == "" && c.PostForm("birth_date") == "" &&
-			c.PostForm("birth_place") == "" && c.PostForm("gender") == "" && 
-			c.PostForm("email") == "" && c.PostForm("address") == "" && 
-		 	c.PostForm("contact_no") == "" && c.PostForm("user_role") == "" &&
-		 	c.PostForm("position") == "") {
-			respond(http.StatusBadRequest, "Nothing to update.", c, true)
-		} else {
-			user := m.User{}
-			query := handler.db.Where("id = ?", userId).First(&user)
-			if query.RowsAffected > 0 {
-				if (c.PostForm("first_name") != "") {
-					user.FirstName = c.PostForm("first_name")
-				}
-
-				if (c.PostForm("middle_name") != "") {
-					user.MiddleName = c.PostForm("middle_name")
-				}
-
-				if (c.PostForm("last_name") != "") {
-					user.LastName = c.PostForm("last_name")
-				}
-
-				if (c.PostForm("birth_date") != "") {
-					user.BirthDate = c.PostForm("birth_date")
-				}
-
-				if (c.PostForm("birth_date") != "") {
-					user.BirthDate = c.PostForm("birth_date")
-				}
-			} else {
-				respond(http.StatusBadRequest, "User record not found.", c, true)
-			}
-		}
+	if (c.PostForm("first_name") == "" && c.PostForm("middle_name") == "" && 
+		c.PostForm("last_name") == "" && c.PostForm("birth_date") == "" &&
+		c.PostForm("birth_place") == "" && c.PostForm("gender") == "" && 
+		c.PostForm("email") == "" && c.PostForm("address") == "" && 
+	 	c.PostForm("contact_no") == "" && c.PostForm("user_role") == "" &&
+	 	c.PostForm("position") == "") {
+		respond(http.StatusBadRequest, "Nothing to update.", c, true)
 	} else {
-		respond(http.StatusBadRequest, "Invalid user id.", c, true)
+		user := m.User{}
+		query := handler.db.Where("id = ?", c.Param("user_id")).First(&user)
+		if query.RowsAffected > 0 {
+			if (c.PostForm("first_name") != "") {
+				user.FirstName = c.PostForm("first_name")
+			}
+
+			if (c.PostForm("middle_name") != "") {
+				user.MiddleName = c.PostForm("middle_name")
+			}
+
+			if (c.PostForm("last_name") != "") {
+				user.LastName = c.PostForm("last_name")
+			}
+
+			if (c.PostForm("birth_date") != "") {
+				user.BirthDate = c.PostForm("birth_date")
+			}
+
+			if (c.PostForm("birth_date") != "") {
+				user.BirthDate = c.PostForm("birth_date")
+			}
+		} else {
+			respond(http.StatusBadRequest, "User record not found.", c, true)
+		}
 	}
 	return
 }
