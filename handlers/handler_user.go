@@ -7,6 +7,7 @@ import (
     "log"
     "math/rand"
     "time"
+    "strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -49,6 +50,9 @@ func (handler UserHandler) Create(c *gin.Context) {
 					if handler.db.Where("email = ?", user.Email).First(&existingUser).RowsAffected < 1 {
 						encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
 						user.Password = encryptedPassword
+						if (c.PostForm("id") == "") {
+							user.Id = GenerateID()
+						}
 						result := handler.db.Create(&user)
 						if result.RowsAffected > 0 {
 							token := &JWT{Token: generateJWT(user.Email)}
@@ -260,6 +264,52 @@ func (handler UserHandler) GetUserInfo(c *gin.Context) {
 	}
 	return
 }
+
+//update user record
+func (handler UserHandler) Update(c *gin.Context) {
+	userId, userIdErr := strconv.Atoi(c.Param("user_id"))
+
+	if (userIdErr == nil) {
+		if (c.PostForm("first_name") == "" && c.PostForm("middle_name") == "" && 
+			c.PostForm("last_name") == "" && c.PostForm("birth_date") == "" &&
+			c.PostForm("birth_place") == "" && c.PostForm("gender") == "" && 
+			c.PostForm("email") == "" && c.PostForm("address") == "" && 
+		 	c.PostForm("contact_no") == "" && c.PostForm("user_role") == "" &&
+		 	c.PostForm("position") == "") {
+			respond(http.StatusBadRequest, "Nothing to update.", c, true)
+		} else {
+			user := m.User{}
+			query := handler.db.Where("id = ?", userId).First(&user)
+			if query.RowsAffected > 0 {
+				if (c.PostForm("first_name") != "") {
+					user.FirstName = c.PostForm("first_name")
+				}
+
+				if (c.PostForm("middle_name") != "") {
+					user.MiddleName = c.PostForm("middle_name")
+				}
+
+				if (c.PostForm("last_name") != "") {
+					user.LastName = c.PostForm("last_name")
+				}
+
+				if (c.PostForm("birth_date") != "") {
+					user.BirthDate = c.PostForm("birth_date")
+				}
+
+				if (c.PostForm("birth_date") != "") {
+					user.BirthDate = c.PostForm("birth_date")
+				}
+			} else {
+				respond(http.StatusBadRequest, "User record not found.", c, true)
+			}
+		}
+	} else {
+		respond(http.StatusBadRequest, "Invalid user id.", c, true)
+	}
+	return
+}
+
 
 func RandomString(strlen int) string {
 	rand.Seed(time.Now().UTC().UnixNano())

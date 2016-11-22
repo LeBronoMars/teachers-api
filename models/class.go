@@ -8,7 +8,7 @@ type Class struct {
 	Section string `json:"section" form:"section" binding:"required"`
 	SchoolYearFrom int `json:"school_year_from"`
 	SchoolYearTo int `json:"school_year_to"`
-	School int `json:"school_id" form:"school_id" binding:"required"`
+	School string `json:"school_id" form:"school_id" binding:"required"`
 	Remarks string `json:"remarks" form:"remarks"`
 	IsSynced bool `json:"is_synced" form:"is_synced"`
 }

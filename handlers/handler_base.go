@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pusher/pusher-http-go"
+    "github.com/satori/go.uuid"
 )
 
 func respond(statusCode int, responseMessage string, c *gin.Context, isError bool) {
@@ -159,4 +160,8 @@ func GetStartOfDay(t time.Time) time.Time {
 func GetEndOfDay(t time.Time) time.Time {
     year, month, day := t.Date()
     return time.Date(year, month, day, 23, 59, 59, 0, t.Location())
+}
+
+func GenerateID() string {
+	return fmt.Sprintf("%s", uuid.NewV4())
 }

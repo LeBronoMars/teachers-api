@@ -37,6 +37,7 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	public.POST("/user", userHandler.Create)
 	public.POST("/login", userHandler.Auth)
 	private.GET("/users", userHandler.Index)
+	private.PUT("/users/:user_id", userHandler.Update)
 	private.PUT("/change_password", userHandler.ChangePassword)
 	private.PUT("/change_profile_pic", userHandler.ChangeProfilePic)
 	private.GET("/users/:user_id", userHandler.GetUserById)
@@ -112,7 +113,7 @@ func InitDB() *gorm.DB {
 	_db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&m.User{},
 																&m.School{},
 																&m.Class{})
-	return _db
+	return &_db
 }
 
 func InitPusher() *pusher.Client {

@@ -35,6 +35,8 @@ func (handler SchoolYearHandler) Create(c *gin.Context) {
 		respond(http.StatusBadRequest, fmt.Sprintf("%v already existing", sy), c, true)
 	} else {
 		newSchoolYear := m.SchoolYear{}
+		fmt.Printf("\nUUID ---> %s", GenerateID())
+		newSchoolYear.Id = GenerateID()
 		newSchoolYear.From = currentYear
 		newSchoolYear.To = currentYear + 1
 		newSchoolYear.Description = c.PostForm("description")

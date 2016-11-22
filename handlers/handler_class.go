@@ -87,7 +87,10 @@ func (handler ClassHandler) Create(c *gin.Context) {
 			existingClassQuery := handler.db.Where("section = ? and grade_level = ?", newClass.Section, newClass.GradeLevel).First(&existingClass)
 
 			if existingClassQuery.RowsAffected == 0 {
-				saveResult := handler.db.Save(&newClass)
+				if (c.PostForm("id") == "") {
+					newClass.Id = GenerateID()
+				}
+				saveResult := handler.db.Create(&newClass)
 				if (saveResult.RowsAffected > 0) {
 					qryNewClass := m.QryClassSchools{}
 					handler.db.Where("class_id = ?", newClass.Id).First(&qryNewClass)

@@ -68,6 +68,9 @@ func (handler SchoolHandler) Create(c *gin.Context) {
 		var newSchool m.School
 		err := c.Bind(&newSchool)
 		if err == nil {
+			if (c.PostForm("id") == "") {
+				newSchool.Id = GenerateID()
+			}
 			saveResult := handler.db.Create(&newSchool)
 			if saveResult.RowsAffected > 0 {
 				c.JSON(http.StatusCreated, newSchool)
