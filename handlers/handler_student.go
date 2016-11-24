@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -19,11 +20,40 @@ func NewStudentHandler(db *gorm.DB) *StudentHandler {
 //get all students
 func (handler StudentHandler) Index(c *gin.Context) {
 	students := []m.Student{}		
-	handler.db.Find(&students)
-	c.JSON(http.StatusOK, students)
+	
+	var query = handler.db
+
+	startParam, startParamExist := c.GetQuery("start")
+	limitParam, limitParamExist := c.GetQuery("limit")
+	orderParam, orderParamExist := c.GetQuery("order")
+
+	//start param exist
+	if startParamExist {
+		start,_ := strconv.Atoi(startParam)
+		if start != 0 {
+			query = query.Offset(start)				
+		} else {
+			query = query.Offset(0)
+		}
+	} 
+
+	//limit param exist
+	if limitParamExist {
+		limit,_ := strconv.Atoi(limitParam)
+		query = query.Limit(limit)
+	} else {
+		query = query.Limit(10)
+	}
+
+	//sort param exist
+	if orderParamExist {
+		query = query.Order(orderParam)
+	} 
+
+	query.Find(&students)
+	c.JSON(http.StatusOK, students)	
 	return
 }
-
 //create new student
 func (handler StudentHandler) Create(c *gin.Context) {
 	var student m.Student
