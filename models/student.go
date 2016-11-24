@@ -1,5 +1,10 @@
 package models
 
+import (
+	"crypto/md5"
+	"fmt"
+)
+
 type Student struct {
 	BaseModel
 	StudentNo string `json:"student_no" form:"student_no" binding:"required"`
@@ -17,6 +22,8 @@ type Student struct {
 
 func (s *Student) BeforeCreate() (err error) {
 	s.Status = "active"
+	defaultPic := fmt.Sprintf("%x", md5.Sum([]byte(s.StudentNo)))
+	s.PicUrl = fmt.Sprintf("http://www.gravatar.com/avatar/%s?d=identicon", defaultPic)
 	return
 }
 
