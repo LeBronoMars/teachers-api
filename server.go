@@ -112,8 +112,9 @@ func InitDB() *gorm.DB {
 	_db.LogMode(true)
 	_db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&m.User{},
 																&m.School{},
-																&m.Class{})
-	return _db
+																&m.Class{}, 
+																&m.Student{})
+	return &_db
 }
 
 func InitPusher() *pusher.Client {
