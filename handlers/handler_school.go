@@ -127,7 +127,7 @@ func (handler SchoolHandler) Update(c *gin.Context) {
 			}
 		}
 	} else {
-		respond(http.StatusBadRequest, "School record not found.", c, true)
+		respond(http.StatusNotFound, "School record not found.", c, true)
 	}
 	return
 }
@@ -139,7 +139,7 @@ func (handler SchoolHandler) Show(c *gin.Context) {
 	if existingSchoolQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, existingSchool)
 	} else {
-		respond(http.StatusBadRequest, "School record not found.", c, true)
+		respond(http.StatusNotFound, "School record not found.", c, true)
 	}
 	return
 }

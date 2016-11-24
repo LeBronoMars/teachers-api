@@ -54,6 +54,7 @@ func (handler StudentHandler) Index(c *gin.Context) {
 	c.JSON(http.StatusOK, students)	
 	return
 }
+
 //create new student
 func (handler StudentHandler) Create(c *gin.Context) {
 	var student m.Student
@@ -80,3 +81,87 @@ func (handler StudentHandler) Create(c *gin.Context) {
 	}
 	return
 }
+
+func (handler StudentHandler) Show(c *gin.Context) {
+	studentNo := c.Param("student_no")
+	student := m.Student{}
+	studentQuery := handler.db.Where("student_no = ?", studentNo).First(&student)
+
+	if studentQuery.RowsAffected > 0 {
+		c.JSON(http.StatusOK, student)
+	} else {
+		respond(http.StatusNotFound, "Student record not found", c, true)
+	}
+	return
+}
+
+func (handler StudentHandler) Update(c *gin.Context) {
+	studentNo := c.Param("student_no")
+	student := m.Student{}
+	studentQuery := handler.db.Where("student_no = ?", studentNo).First(&student)
+
+	if studentQuery.RowsAffected > 0 {
+		if (c.PostForm("student_no") != "") {
+			otherStudent := m.Student{}
+			otherStudentResult := handler.db.Where("student_no = ? AND id != ?", c.PostForm("student_no"), student.Id).First(&otherStudent)
+
+			if otherStudentResult.RowsAffected > 0 {
+				respond(http.StatusBadRequest, "Student no. already assigned to other student.", c, true)
+				return
+			} else {
+				student.StudentNo = c.PostForm("student_no")
+			}
+		}
+
+		if (c.PostForm("first_name") != "") {
+			student.FirstName = c.PostForm("first_name")
+		}
+
+		if (c.PostForm("middle_name") != "") {
+			student.MiddleName = c.PostForm("middle_name")
+		}
+
+		if (c.PostForm("last_name") != "") {
+			student.LastName = c.PostForm("last_name")
+		}
+
+		if (c.PostForm("birth_date") != "") {
+			student.BirthDate = c.PostForm("birth_date")
+		}
+
+		if (c.PostForm("address") != "") {
+			student.BirthDate = c.PostForm("address")
+		}	
+
+		if (c.PostForm("gender") != "") {
+			student.Gender = c.PostForm("gender")
+		}	
+
+		if (c.PostForm("status") != "") {
+			student.Status = c.PostForm("status")
+		}
+
+		if (c.PostForm("remarks") != "") {
+			student.Remarks = c.PostForm("remarks")
+		}			
+
+		if (c.PostForm("pic_url") != "") {
+			student.PicUrl = c.PostForm("pic_url")
+		}
+
+		updateResult := handler.db.Save(&student)
+		if updateResult.RowsAffected > 0 {
+			c.JSON(http.StatusOK, student)
+		} else {
+			respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
+		}
+	} else {
+		respond(http.StatusNotFound, "Student record not found", c, true)
+	}
+	return
+}
+
+
+
+
+

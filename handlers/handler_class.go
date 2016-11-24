@@ -102,7 +102,7 @@ func (handler ClassHandler) Create(c *gin.Context) {
 				respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
 			}
 		} else {
-			respond(http.StatusBadRequest, "School not found.", c, true)
+			respond(http.StatusNotFound, "School not found.", c, true)
 		}
 	} else {
 		respond(http.StatusBadRequest, err.Error(), c, true)
@@ -117,7 +117,7 @@ func (handler ClassHandler) Show(c *gin.Context) {
 	if query.RowsAffected > 0 {
 		c.JSON(http.StatusOK, class)
 	} else {
-		respond(http.StatusBadRequest, "Class record not found.", c, true)
+		respond(http.StatusNotFound, "Class record not found.", c, true)
 	}
 	return
 }
@@ -154,7 +154,7 @@ func (handler ClassHandler) Update(c *gin.Context) {
 				respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", class.Section, class.GradeLevel), c, true)
 			}
 		} else {
-			respond(http.StatusBadRequest, "Class record not found.", c, true)
+			respond(http.StatusNotFound, "Class record not found.", c, true)
 		}
 	}
 	return
