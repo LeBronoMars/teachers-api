@@ -19,7 +19,7 @@ func NewClassSubject(db *gorm.DB) *ClassSubject {
 
 //get all class subject
 func (handler ClassSubject) Index(c *gin.Context) {
-	subjects := []m.Subject{}		
+	qrySubjectClass := []m.QryClassSubjects{}		
 	
 	var query = handler.db
 
@@ -50,8 +50,8 @@ func (handler ClassSubject) Index(c *gin.Context) {
 		query = query.Order(orderParam)
 	} 
 
-	query.Where("created_by = ?", GetCreator(c)).Find(&subjects)
-	c.JSON(http.StatusOK, subjects)
+	query.Where("class_subject_created_by = ?", GetCreator(c)).Find(&qrySubjectClass)
+	c.JSON(http.StatusOK, qrySubjectClass)
 	return
 }
 
@@ -61,22 +61,41 @@ func (handler ClassSubject) Create(c *gin.Context) {
 	err := c.Bind(&classSubject)
 
 	if err == nil {
-		existingClassSubject := m.ClassSubject{}
-		existingClassSubjectQuery := handler.db.Where("teacher_id = ? AND class_id = ? AND subject_id AND created_by = ?", classSubject.TeacherId, 
-			classSubject.ClassId, existingClassSubject.SubjectId, GetCreator(c)).First(&existingClassSubject)
+		creatorId := GetCreator(c)
+		//check if class is existing
+		class := m.QryClassSchools{}
+		classQuery := handler.db.Where("class_id = ? AND created_by = ?", classSubject.ClassId, creatorId).First(&class)
 
-		if existingClassSubjectQuery.RowsAffected == 0 {
-			if (c.PostForm("id") == "") {
-				classSubject.Id = GenerateID()
-			}
-			saveResult := handler.db.Create(&classSubject)
-			if saveResult.RowsAffected > 0 {
-				c.JSON(http.StatusCreated, classSubject)
+		if classQuery.RowsAffected > 0 {
+			//check if subject is existing
+			subject := m.Subject{}
+			subjectQuery := handler.db.Where("id = ? and created_by = ?", classSubject.SubjectId, creatorId).First(&subject)
+
+			if subjectQuery.RowsAffected > 0 {
+				existingClassSubject := m.ClassSubject{}
+				existingClassSubjectQuery := handler.db.Where("created_by = ? AND class_id = ? AND subject_id = ?", creatorId, classSubject.ClassId, classSubject.SubjectId).First(&existingClassSubject)
+
+				if existingClassSubjectQuery.RowsAffected == 0 {
+					if (c.PostForm("id") == "") {
+						classSubject.Id = GenerateID()
+					}
+					classSubject.CreatedBy = creatorId
+					saveResult := handler.db.Create(&classSubject)
+					if saveResult.RowsAffected > 0 {
+						qrySubjectClass := m.QryClassSubjects{}
+						handler.db.Where("class_subject_id = ?", classSubject.Id).First(&qrySubjectClass)
+						c.JSON(http.StatusCreated, qrySubjectClass)
+					} else {
+						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+					}
+				} else {
+					respond(http.StatusBadRequest, "Record already exist.", c, true)	
+				}
 			} else {
-				respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+				respond(http.StatusBadRequest, "Subject record does not exist.", c, true)
 			}
 		} else {
-			respond(http.StatusBadRequest, "Class, subject and teacher assignment already exist.", c, true)
+			respond(http.StatusBadRequest, "Class record does not exist.", c, true)
 		}
 	} else {
 		respond(http.StatusBadRequest, err.Error(), c, true)

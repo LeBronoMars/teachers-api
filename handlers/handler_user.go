@@ -159,7 +159,7 @@ func (handler UserHandler) ChangeProfilePic(c *gin.Context) {
 	} else {
 		claims, _ := token.Claims.(jwt.MapClaims)
 		user := m.User{}
-		res := handler.db.Where("email = ?", claims["iss"]).First(&user)
+		res := handler.db.Where("id = ?", claims["iss"]).First(&user)
 
 		if res.RowsAffected > 0 {
 			if c.PostForm("new_pic_url") == "" {
@@ -203,7 +203,7 @@ func (handler UserHandler) ForgotPassword(c *gin.Context) {
 		respond(http.StatusPreconditionFailed, "Email is required.", c, true)
 	} else {
 		user := m.User{}
-		qry := handler.db.Where("email = ?", email).First(&user)
+		qry := handler.db.Where("id = ?", email).First(&user)
 
 		if qry.RowsAffected > 0 {
 			from := "1sanmateo.app@gmail.com"
