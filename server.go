@@ -93,11 +93,7 @@ func Auth(secret string) gin.HandlerFunc {
 					response := &Response{Message: err.Error()}
 					c.JSON(http.StatusUnauthorized, response)
 					c.Abort()
-				} else {
-					claims, _ := token.Claims.(jwt.MapClaims)
-					fmt.Printf("\nCLAIMS ---> %v", claims["iss"])
-					fmt.Printf("\nTOKEN ---> %s", token)
-				}
+				} 
 			} else {
 				response := &Response{Message: "Invalid token!"}
 				c.JSON(http.StatusUnauthorized, response)
@@ -128,8 +124,9 @@ func InitDB() *gorm.DB {
 																&m.School{},
 																&m.Class{}, 
 																&m.Student{},
-																&m.Subject{})
-	return _db
+																&m.Subject{},
+																&m.ClassSubject{})
+	return &_db
 }
 
 func InitPusher() *pusher.Client {

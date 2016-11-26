@@ -15,7 +15,6 @@ type Student struct {
 	Gender string `json:"gender" form:"gender" binding:"required"`
 	Address string `json:"address" form:"address" binding:"required"`
 	PicUrl string `json:"pic_url" form:"pic_url"`
-	IsSynced bool `json:"is_synched" form:"is_synched"`
 	Status string `json:"status" form:"status"`
 	Remarks string `json:"remarks" form:"remarks"`
 }

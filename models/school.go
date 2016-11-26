@@ -7,7 +7,6 @@ type School struct {
 	ContactNo string `json:"contact_no" form:"contact_no" binding:"required"`
 	Latitude float64 `json:"latitude" form:"latitude" binding:"required"`
 	Longitude float64 `json:"longitude" form:"longitude" binding:"required"`
-	IsSynced bool `json:"is_synced" form:"is_synced"`
 }
 
 func (s *School) BeforeCreate() (err error) {

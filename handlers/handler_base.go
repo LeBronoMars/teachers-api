@@ -44,11 +44,11 @@ type Response struct {
 }
 
 //generate JWT
-func generateJWT(email string) string {
+func generateJWT(userId string) string {
 	mySigningKey := []byte(config.GetString("TOKEN_KEY"))
     claims := &jwt.StandardClaims{
     	ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-    	Issuer:    email,
+    	Issuer:    userId,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString,_ := token.SignedString(mySigningKey)
@@ -164,4 +164,17 @@ func GetEndOfDay(t time.Time) time.Time {
 
 func GenerateID() string {
 	return fmt.Sprintf("%s", uuid.NewV4())
+}
+
+func GetCreator(c *gin.Context) string {
+	tokenString := c.Request.Header.Get("Authorization")
+	token, err := jwt.Parse(tokenString[7 : len(tokenString)], func(token *jwt.Token) (interface{}, error) {
+	    return []byte(config.GetString("TOKEN_KEY")), nil
+	})
+	if err == nil && token.Valid {
+		claims, _ := token.Claims.(jwt.MapClaims)
+		return fmt.Sprintf("%s", claims["iss"])
+	} else {
+		return ""
+	}
 }

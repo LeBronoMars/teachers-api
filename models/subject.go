@@ -5,5 +5,4 @@ type Subject struct {
 	SubjectName string `json:"subject_name" form:"subject_name" binding:"required"`
 	SubjectCode string `json:"subject_code" form:"subject_code" binding:"required"`
 	Description string `json:"desciption" form:"desciption"`
-	IsSynced bool `json:"is_synched" form:"is_synched"`
 }

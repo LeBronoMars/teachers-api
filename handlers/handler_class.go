@@ -68,7 +68,7 @@ func (handler ClassHandler) Index(c *gin.Context) {
 		query = query.Where("school_year = ?", schoolYearParam)
 	} 
 
-	query.Find(&classess)
+	query.Where("created_by = ?", GetCreator(c)).Find(&classess)
 	c.JSON(http.StatusOK, classess)	
 	return
 }
@@ -84,12 +84,13 @@ func (handler ClassHandler) Create(c *gin.Context) {
 		if existingSchoolQuery.RowsAffected > 0 {
 			//check if class is already existing
 			existingClass := m.Class{}
-			existingClassQuery := handler.db.Where("section = ? and grade_level = ?", newClass.Section, newClass.GradeLevel).First(&existingClass)
+			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ?", newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
 
 			if existingClassQuery.RowsAffected == 0 {
 				if (c.PostForm("id") == "") {
 					newClass.Id = GenerateID()
 				}
+				newClass.CreatedBy = GetCreator(c)
 				saveResult := handler.db.Create(&newClass)
 				if (saveResult.RowsAffected > 0) {
 					qryNewClass := m.QryClassSchools{}
@@ -113,7 +114,7 @@ func (handler ClassHandler) Create(c *gin.Context) {
 //show specic class
 func (handler ClassHandler) Show(c *gin.Context) {
 	class := m.QryClassSchools{}
-	query := handler.db.Where("class_id = ?", c.Param("class_id")).First(&class)
+	query := handler.db.Where("class_id = ? AND created_by = ?", c.Param("class_id"), GetCreator(c)).First(&class)
 	if query.RowsAffected > 0 {
 		c.JSON(http.StatusOK, class)
 	} else {
@@ -128,11 +129,11 @@ func (handler ClassHandler) Update(c *gin.Context) {
 		respond(http.StatusBadRequest, "Nothing to update.", c, true)
 	} else {
 		class := m.Class{}
-		query := handler.db.Where("id = ?", c.Param("class_id")).First(&class)
+		query := handler.db.Where("id = ? AND created_by = ?", c.Param("class_id"), GetCreator(c)).First(&class)
 		if query.RowsAffected > 0 {
 			//check if class is already existing
 			existingClass := m.Class{}
-			existingClassQuery := handler.db.Where("section = ? and grade_level = ?", c.PostForm("section"), c.PostForm("grade_level")).First(&existingClass)
+			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ?", c.PostForm("section"), c.PostForm("grade_level"), GetCreator(c)).First(&existingClass)
 			if existingClassQuery.RowsAffected == 0 {
 
 				if (c.PostForm("grade_level") != "") {

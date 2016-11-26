@@ -50,7 +50,7 @@ func (handler StudentHandler) Index(c *gin.Context) {
 		query = query.Order(orderParam)
 	} 
 
-	query.Find(&students)
+	query.Where("created_by = ?", GetCreator(c)).Find(&students)
 	c.JSON(http.StatusOK, students)	
 	return
 }
@@ -65,10 +65,11 @@ func (handler StudentHandler) Create(c *gin.Context) {
 			student.Id = GenerateID()
 		}
 		existingStudent := m.Student{}
-		existingStudentResult := handler.db.Where("student_no = ?", student.StudentNo).First(&existingStudent)
+		existingStudentResult := handler.db.Where("student_no = ? AND created_by = ?", student.StudentNo, GetCreator(c)).First(&existingStudent)
 		if existingStudentResult.RowsAffected > 0 {
 			respond(http.StatusBadRequest, "Student no. already used.", c, true)
 		} else {
+			student.CreatedBy = GetCreator(c)
 			saveResult := handler.db.Create(&student)
 			if saveResult.RowsAffected > 0 {
 				c.JSON(http.StatusCreated, student)
@@ -85,7 +86,7 @@ func (handler StudentHandler) Create(c *gin.Context) {
 func (handler StudentHandler) Show(c *gin.Context) {
 	studentNo := c.Param("student_no")
 	student := m.Student{}
-	studentQuery := handler.db.Where("student_no = ?", studentNo).First(&student)
+	studentQuery := handler.db.Where("student_no = ? AND created_by = ?", studentNo, GetCreator(c)).First(&student)
 
 	if studentQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, student)
@@ -98,12 +99,12 @@ func (handler StudentHandler) Show(c *gin.Context) {
 func (handler StudentHandler) Update(c *gin.Context) {
 	studentNo := c.Param("student_no")
 	student := m.Student{}
-	studentQuery := handler.db.Where("student_no = ?", studentNo).First(&student)
+	studentQuery := handler.db.Where("student_no = ? AND created_by = ?", studentNo, GetCreator(c)).First(&student)
 
 	if studentQuery.RowsAffected > 0 {
 		if (c.PostForm("student_no") != "") {
 			otherStudent := m.Student{}
-			otherStudentResult := handler.db.Where("student_no = ? AND id != ?", c.PostForm("student_no"), student.Id).First(&otherStudent)
+			otherStudentResult := handler.db.Where("student_no = ? AND id != ? AND created_by = ?", c.PostForm("student_no"), student.Id, GetCreator(c)).First(&otherStudent)
 
 			if otherStudentResult.RowsAffected > 0 {
 				respond(http.StatusBadRequest, "Student no. already assigned to other student.", c, true)

@@ -50,7 +50,7 @@ func (handler SubjectHandler) Index(c *gin.Context) {
 		query = query.Order(orderParam)
 	} 
 
-	query.Find(&subjects)
+	query.Where("created_by = ?", GetCreator(c)).Find(&subjects)
 	c.JSON(http.StatusOK, subjects)
 	return
 }
@@ -62,12 +62,13 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 
 	if err == nil {
 		existingSubject := m.Subject{}
-		existingSubjectQuery := handler.db.Where("subject_code = ?", c.PostForm("subject_code")).First(&existingSubject)
+		existingSubjectQuery := handler.db.Where("subject_code = ? AND created_by = ?", c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
 
 		if existingSubjectQuery.RowsAffected == 0 {
 			if (c.PostForm("id") == "") {
 				newSubject.Id = GenerateID()
 			}
+			newSubject.CreatedBy = GetCreator(c)
 			saveResult := handler.db.Create(&newSubject)
 			if saveResult.RowsAffected > 0 {
 				c.JSON(http.StatusCreated, newSubject)
@@ -86,7 +87,7 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 func (handler SubjectHandler) Show(c *gin.Context) {
 	subjectCode := c.Param("subject_code")
 	subject := m.Subject{}
-	subjectQuery := handler.db.Where("subject_code = ?", subjectCode).First(&subject)
+	subjectQuery := handler.db.Where("subject_code = ? and created_by = ?", subjectCode, GetCreator(c)).First(&subject)
 
 	if subjectQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, subject)
@@ -99,11 +100,11 @@ func (handler SubjectHandler) Show(c *gin.Context) {
 func (handler SubjectHandler) Update(c *gin.Context) {
 	subjectCode := c.Param("subject_code")
 	subject := m.Subject{}
-	subjectQuery := handler.db.Where("subject_code = ?", subjectCode).First(&subject)
+	subjectQuery := handler.db.Where("subject_code = ? AND created_by = ?", subjectCode, GetCreator(c)).First(&subject)
 
 	if subjectQuery.RowsAffected > 0 {
 		existingSubject := m.Subject{}
-		existingSubjectQuery := handler.db.Where("subject_code = ? AND id != ?", c.PostForm("subject_code"), subject.Id).First(&existingSubject)
+		existingSubjectQuery := handler.db.Where("subject_code = ? AND id != ? AND created_by = ?", c.PostForm("subject_code"), subject.Id, GetCreator(c)).First(&existingSubject)
 
 		if existingSubjectQuery.RowsAffected == 0 {
 			if (c.PostForm("subject_name") != "") {

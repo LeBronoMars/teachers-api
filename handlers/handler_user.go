@@ -54,7 +54,7 @@ func (handler UserHandler) Create(c *gin.Context) {
 						}
 						result := handler.db.Create(&user)
 						if result.RowsAffected > 0 {
-							token := &JWT{Token: generateJWT(user.Email)}
+							token := &JWT{Token: generateJWT(user.Id)}
 							c.JSON(http.StatusCreated, token)
 						} else {
 							respond(http.StatusBadRequest, result.Error.Error(), c , true)
@@ -97,7 +97,7 @@ func (handler UserHandler) Auth(c *gin.Context) {
 					respond(http.StatusBadRequest,"Account not found!",c,true)
 				} else {
 					//authentication successful
-					token := &JWT{Token: generateJWT(user.Email)}
+					token := &JWT{Token: generateJWT(user.Id)}
 					c.JSON(http.StatusCreated, token)
 				}					
 			}
@@ -107,7 +107,7 @@ func (handler UserHandler) Auth(c *gin.Context) {
 	}
 }
 
-func (handler UserHandler) ChangePassword (c *gin.Context) {
+func (handler UserHandler) ChangePassword(c *gin.Context) {
 	oldPassword := c.PostForm("old_password")
 	newPassword := c.PostForm("new_password")
 
@@ -125,7 +125,7 @@ func (handler UserHandler) ChangePassword (c *gin.Context) {
 		} else {
 			claims, _ := token.Claims.(jwt.MapClaims)
 			user := m.User{}
-			res := handler.db.Where("email = ?", claims["iss"]).First(&user)
+			res := handler.db.Where("id = ?", claims["iss"]).First(&user)
 
 			if res.RowsAffected > 0 {
 				decryptedPassword := decrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
@@ -253,7 +253,7 @@ func (handler UserHandler) GetUserInfo(c *gin.Context) {
 		} else {
 			claims, _ := token.Claims.(jwt.MapClaims)
 			user := m.User{}
-			res := handler.db.Where("email = ?", claims["iss"]).First(&user)
+			res := handler.db.Where("id = ?", claims["iss"]).First(&user)
 			if res.RowsAffected > 0 {
 				c.JSON(http.StatusOK, user)
 			} else {

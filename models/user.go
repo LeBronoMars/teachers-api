@@ -23,7 +23,6 @@ type User struct {
 	Password string `json:"-" form:"password" binding:"required"`
 	PicUrl string `json:"pic_url" form:"pic_url"`
 	Position string `json:"position" form:"position" binding:"required"`
-	IsSynced bool `json:"is_synced"`
 	SchoolId string `json:"school_id" form:"school_id" binding:"required"`
 }
 
