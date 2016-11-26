@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type QryClassSubjects struct {
 	ClassSubjectId string `json:"class_subject_id"`
 	ClassSubjectIsSynced bool `json:"class_subject_id_is_synced"`
