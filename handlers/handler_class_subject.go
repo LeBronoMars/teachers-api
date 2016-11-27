@@ -151,14 +151,14 @@ func (handler ClassSubject) Update(c *gin.Context) {
 }
 
 func (handler ClassSubject) Show(c *gin.Context) {
-	subjectCode := c.Param("class_subject_id")
-	subject := m.Subject{}
-	subjectQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", subjectCode, GetCreator(c)).First(&subject)
+	classSubjectId := c.Param("class_subject_id")
+	qrySubjectClass := m.QryClassSubjects{}
+	qrySubjectClassQuery := handler.db.Where("class_subject_id = ?", classSubjectId).First(&qrySubjectClass)
 
-	if subjectQuery.RowsAffected > 0 {
-		c.JSON(http.StatusOK, subject)
+	if qrySubjectClassQuery.RowsAffected > 0 {
+		c.JSON(http.StatusOK, qrySubjectClass)
 	} else {
-		respond(http.StatusNotFound, "Subject record not found", c, true)
+		respond(http.StatusNotFound, "Class subject record not found", c, true)
 	}
 	return
 }
