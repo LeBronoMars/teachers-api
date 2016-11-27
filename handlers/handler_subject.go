@@ -154,7 +154,7 @@ func (handler SubjectHandler) Delete(c *gin.Context) {
 				respond(http.StatusBadRequest, deleteResult.Error.Error(), c, true)
 			}
 		} else {
-			respond(http.StatusBadRequest, "Unable to deletedrecord, this subject is related in class subject assignment.", c, true)
+			respond(http.StatusBadRequest, "Unable to delete record, this subject is related in class subject assignment.", c, true)
 		}
 	} else {
 		respond(http.StatusNotFound, "Subject record not found.", c, true)

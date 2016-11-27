@@ -14,7 +14,11 @@ type Class struct {
 
 func (c *Class) BeforeCreate() (err error) {
 	c.IsSynced = true
-	if c.SchoolYearFrom >= c.SchoolYearTo {
+	if (c.SchoolYearFrom < 2000) {
+		err = errors.New("School year from must be year 2000 onwards")
+	} else if (c.SchoolYearTo < 2000) {
+		err = errors.New("School year to must be year 2000 onwards")
+	} else if c.SchoolYearFrom >= c.SchoolYearTo {
 		err = errors.New("School year to must be greater than school year from")
 	} else if ((c.SchoolYearTo - c.SchoolYearFrom) > 1) {
 		err = errors.New("Invalid school year duration.")

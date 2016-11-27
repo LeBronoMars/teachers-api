@@ -133,7 +133,7 @@ func (handler ClassHandler) Update(c *gin.Context) {
 		if query.RowsAffected > 0 {
 			//check if class is already existing
 			existingClass := m.Class{}
-			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", c.PostForm("section"), c.PostForm("grade_level"), GetCreator(c)).First(&existingClass)
+			existingClassQuery := handler.db.Where("id != ? AND section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", c.Param("class_id"), c.PostForm("section"), c.PostForm("grade_level"), GetCreator(c)).First(&existingClass)
 			if existingClassQuery.RowsAffected == 0 {
 
 				if (c.PostForm("grade_level") != "") {
@@ -142,6 +142,68 @@ func (handler ClassHandler) Update(c *gin.Context) {
 
 				if (c.PostForm("section") != "") {
 					class.Section = c.PostForm("section")
+				}
+
+				if (c.PostForm("school_year_from") != "") {
+					schoolYearFrom, _ := strconv.Atoi(c.PostForm("school_year_from"))
+					if (schoolYearFrom < 2000) {
+						respond(http.StatusBadRequest, "School year from must be year 2000 onwards", c, true)
+						return
+					} else {
+						if (c.PostForm("school_year_to") != "") {
+							schoolYearTo, _ := strconv.Atoi(c.PostForm("school_year_to"))
+							if schoolYearFrom >= schoolYearTo {
+								respond(http.StatusBadRequest, fmt.Sprintf("School year to (%v) must be greater than school year from (%v)", schoolYearTo, schoolYearFrom), c, true)
+								return
+							} else if schoolYearTo - schoolYearFrom > 1 {
+								respond(http.StatusBadRequest, "Invalid school year duration.", c, true)
+								return
+							} else {
+								class.SchoolYearFrom = schoolYearFrom
+							}
+						} else {
+							if schoolYearFrom >= class.SchoolYearTo {
+								respond(http.StatusBadRequest, fmt.Sprintf("School year from (%v) must be greater than school year to (%v)", schoolYearFrom, class.SchoolYearTo), c, true)
+								return
+							} else if class.SchoolYearTo - schoolYearFrom > 1 {
+								respond(http.StatusBadRequest, "Invalid school year duration.", c, true)
+								return
+							} else {
+								class.SchoolYearFrom = schoolYearFrom								
+							}
+						}
+					}
+				}
+
+				if (c.PostForm("school_year_to") != "") {
+					schoolYearTo, _ := strconv.Atoi(c.PostForm("school_year_to"))
+					if (schoolYearTo < 2000) {
+						respond(http.StatusBadRequest, "School year to must be year 2000 onwards", c, true)
+						return
+					} else {
+						if (c.PostForm("school_year_from") != "") {
+							schoolYearFrom, _ := strconv.Atoi(c.PostForm("school_year_from"))
+							if schoolYearFrom >= schoolYearTo {
+								respond(http.StatusBadRequest, fmt.Sprintf("School year to (%v) must be greater than school year from (%v)", schoolYearTo, schoolYearFrom), c, true)
+								return
+							} else if schoolYearTo - schoolYearFrom > 1 {
+								respond(http.StatusBadRequest, "Invalid school year duration.", c, true)
+								return
+							} else {
+								class.SchoolYearTo = schoolYearTo
+							}
+						} else {
+							if class.SchoolYearFrom >= schoolYearTo {
+								respond(http.StatusBadRequest, fmt.Sprintf("School year to (%v) must be greater than school year from (%v)", schoolYearTo, class.SchoolYearFrom), c, true)
+								return
+							} else if schoolYearTo - class.SchoolYearFrom > 1 {
+								respond(http.StatusBadRequest, "Invalid school year duration.", c, true)
+								return
+							} else {
+								class.SchoolYearTo = schoolYearTo
+							} 
+						}
+					}
 				}
 
 				updateResult := handler.db.Save(&class)
