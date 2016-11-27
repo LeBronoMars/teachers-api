@@ -85,6 +85,7 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	private.GET("/assign/class_subject", classSubjectHandler.Index)
 	private.POST("/assign/class_subject", classSubjectHandler.Create)
 	private.PUT("/assign/class_subject/:class_subject_id", classSubjectHandler.Update)
+	private.GET("/assign/class_subject/:class_subject_id", classSubjectHandler.Show)
 	private.DELETE("/assign/class_subject/:class_subject_id", classSubjectHandler.Delete)
 
 	r.Run(fmt.Sprintf(":%s", "8080"))

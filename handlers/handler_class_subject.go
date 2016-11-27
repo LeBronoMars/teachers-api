@@ -122,8 +122,14 @@ func (handler ClassSubject) Update(c *gin.Context) {
 			subjectQuery := handler.db.Where("id = ? and created_by = ?", c.PostForm("subject_id"), creatorId).First(&subject)
 
 			if subjectQuery.RowsAffected > 0 {
-				existingClassSubject.ClassId = c.PostForm("class_id")
-				existingClassSubject.SubjectId = c.PostForm("subject_id")
+				if (c.PostForm("class_id") != "") {
+					existingClassSubject.ClassId = c.PostForm("class_id")					
+				}
+
+				if (c.PostForm("subject_id") != "") {
+					existingClassSubject.SubjectId = c.PostForm("subject_id")					
+				}
+				
 				updateResult := handler.db.Save(&existingClassSubject)
 				if updateResult.RowsAffected > 0 {
 					qrySubjectClass := m.QryClassSubjects{}
@@ -145,9 +151,9 @@ func (handler ClassSubject) Update(c *gin.Context) {
 }
 
 func (handler ClassSubject) Show(c *gin.Context) {
-	subjectCode := c.Param("subject_code")
+	subjectCode := c.Param("class_subject_id")
 	subject := m.Subject{}
-	subjectQuery := handler.db.Where("subject_code = ? AND created_by = ?", subjectCode, GetCreator(c)).First(&subject)
+	subjectQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", subjectCode, GetCreator(c)).First(&subject)
 
 	if subjectQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, subject)
@@ -160,7 +166,7 @@ func (handler ClassSubject) Show(c *gin.Context) {
 func (handler ClassSubject) Delete(c *gin.Context) {
 	classSubjectId := c.Param("class_subject_id")
 	existingClassSubject := m.ClassSubject{}
-	existingClassSubjectQuery := handler.db.Where("id = ? AND created_by = ?", classSubjectId, GetCreator(c)).First(&existingClassSubject)
+	existingClassSubjectQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", classSubjectId, GetCreator(c)).First(&existingClassSubject)
 
 	if (existingClassSubjectQuery.RowsAffected > 0) {
 		deleteResult := handler.db.Delete(&existingClassSubject)
