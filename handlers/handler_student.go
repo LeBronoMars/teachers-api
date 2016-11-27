@@ -65,7 +65,7 @@ func (handler StudentHandler) Create(c *gin.Context) {
 			student.Id = GenerateID()
 		}
 		existingStudent := m.Student{}
-		existingStudentResult := handler.db.Where("student_no = ? AND created_by = ?", student.StudentNo, GetCreator(c)).First(&existingStudent)
+		existingStudentResult := handler.db.Where("student_no = ? AND created_by = ? AND deleted_at is NULL", student.StudentNo, GetCreator(c)).First(&existingStudent)
 		if existingStudentResult.RowsAffected > 0 {
 			respond(http.StatusBadRequest, "Student no. already used.", c, true)
 		} else {
@@ -84,9 +84,9 @@ func (handler StudentHandler) Create(c *gin.Context) {
 }
 
 func (handler StudentHandler) Show(c *gin.Context) {
-	studentNo := c.Param("student_no")
+	id := c.Param("id")
 	student := m.Student{}
-	studentQuery := handler.db.Where("student_no = ? AND created_by = ?", studentNo, GetCreator(c)).First(&student)
+	studentQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", id, GetCreator(c)).First(&student)
 
 	if studentQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, student)
@@ -97,14 +97,14 @@ func (handler StudentHandler) Show(c *gin.Context) {
 }
 
 func (handler StudentHandler) Update(c *gin.Context) {
-	studentNo := c.Param("student_no")
+	id := c.Param("id")
 	student := m.Student{}
-	studentQuery := handler.db.Where("student_no = ? AND created_by = ?", studentNo, GetCreator(c)).First(&student)
+	studentQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", id, GetCreator(c)).First(&student)
 
 	if studentQuery.RowsAffected > 0 {
 		if (c.PostForm("student_no") != "") {
 			otherStudent := m.Student{}
-			otherStudentResult := handler.db.Where("student_no = ? AND id != ? AND created_by = ?", c.PostForm("student_no"), student.Id, GetCreator(c)).First(&otherStudent)
+			otherStudentResult := handler.db.Where("student_no = ? AND id != ? AND created_by = ? AND deleted_at is NULL", c.PostForm("student_no"), student.Id, GetCreator(c)).First(&otherStudent)
 
 			if otherStudentResult.RowsAffected > 0 {
 				respond(http.StatusBadRequest, "Student no. already assigned to other student.", c, true)
@@ -162,6 +162,23 @@ func (handler StudentHandler) Update(c *gin.Context) {
 	return
 }
 
+func (handler StudentHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+	student := m.Student{}
+	studentQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", id, GetCreator(c)).First(&student)
+
+	if studentQuery.RowsAffected > 0 {
+		deleteResult := handler.db.Delete(&student)
+		if deleteResult.RowsAffected > 0 {
+			respond(http.StatusOK, "Student record successfully deleted", c, false)
+		} else {
+			respond(http.StatusBadRequest, deleteResult.Error.Error(), c, true)
+		}
+	} else {
+		respond(http.StatusNotFound, "Student record not found", c, true)
+	}
+	return
+}
 
 
 

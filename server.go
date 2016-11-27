@@ -67,8 +67,9 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	studentHandler := h.NewStudentHandler(db)
 	private.GET("/students", studentHandler.Index)
 	private.POST("/students", studentHandler.Create)
-	private.PUT("/students/:student_no", studentHandler.Update)
-	private.GET("/students/:student_no", studentHandler.Show)
+	private.PUT("/students/:id", studentHandler.Update)
+	private.GET("/students/:id", studentHandler.Show)
+	private.DELETE("/students/:id", studentHandler.Delete)
 
 	//manage subjects
 	subjectHandler := h.NewSubjectHandler(db)
