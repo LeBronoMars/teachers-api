@@ -206,6 +206,17 @@ func (handler ClassHandler) Update(c *gin.Context) {
 					}
 				}
 
+				if (c.PostForm("school_id") != "") {
+					school := m.School{}
+					existingSchoolQuery := handler.db.Where("id = ?", c.PostForm("school_id")).First(&school)
+					if existingSchoolQuery.RowsAffected == 0 {
+						respond(http.StatusBadRequest, "School record not found.", c, true)
+						return
+					} else {
+						class.School = c.PostForm("school_id")
+					}
+				}
+
 				updateResult := handler.db.Save(&class)
 
 				if updateResult.RowsAffected > 0 {
@@ -214,7 +225,7 @@ func (handler ClassHandler) Update(c *gin.Context) {
 					respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
 				}
 			} else {
-				respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", class.Section, class.GradeLevel), c, true)
+				respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", c.PostForm("grade_level"), c.PostForm("section")), c, true)
 			}
 		} else {
 			respond(http.StatusNotFound, "Class record not found.", c, true)
