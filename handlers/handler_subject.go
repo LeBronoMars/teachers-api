@@ -68,6 +68,9 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 			if (c.PostForm("id") == "") {
 				newSubject.Id = GenerateID()
 			}
+			if (c.PostForm("description") != "") {
+				newSubject.Description = c.PostForm("description")				
+			}
 			newSubject.CreatedBy = GetCreator(c)
 			saveResult := handler.db.Create(&newSubject)
 			if saveResult.RowsAffected > 0 {

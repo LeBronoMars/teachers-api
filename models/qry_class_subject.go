@@ -4,6 +4,7 @@ type QryClassSubjects struct {
 	ClassSubjectId string `json:"class_subject_id"`
 	ClassSubjectIsSynced bool `json:"class_subject_id_is_synced"`
 	ClassSubjectCreatedBy string `json:"class_subject_created_by"`
+	ClassSubjectDeletedAt string `json:"class_subject_deleted_at"`
 	ClassId string `json:"class_id"`
 	ClassIsSynced string `json:"class_is_synced"`
 	ClassGradeLevel string `json:"class_grade_level"`

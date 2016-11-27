@@ -50,7 +50,8 @@ func (handler ClassSubject) Index(c *gin.Context) {
 		query = query.Order(orderParam)
 	} 
 
-	query.Where("class_subject_created_by = ?", GetCreator(c)).Find(&qrySubjectClass)
+	query.Where("class_subject_created_by = ? AND class_subject_deleted_at is NULL", GetCreator(c)).Find(&qrySubjectClass)
+	//query.Where("class_subject_created_by = ?", GetCreator(c)).Find(&qrySubjectClass)
 	c.JSON(http.StatusOK, qrySubjectClass)
 	return
 }
@@ -73,7 +74,7 @@ func (handler ClassSubject) Create(c *gin.Context) {
 
 			if subjectQuery.RowsAffected > 0 {
 				existingClassSubject := m.ClassSubject{}
-				existingClassSubjectQuery := handler.db.Where("created_by = ? AND class_id = ? AND subject_id = ?", creatorId, classSubject.ClassId, classSubject.SubjectId).First(&existingClassSubject)
+				existingClassSubjectQuery := handler.db.Where("created_by = ? AND class_id = ? AND subject_id = ? AND deleted_at is NULL", creatorId, classSubject.ClassId, classSubject.SubjectId).First(&existingClassSubject)
 
 				if existingClassSubjectQuery.RowsAffected == 0 {
 					if (c.PostForm("id") == "") {
@@ -103,6 +104,46 @@ func (handler ClassSubject) Create(c *gin.Context) {
 	return
 }
 
+//update class subject
+func (handler ClassSubject) Update(c *gin.Context) {
+	creatorId := GetCreator(c)
+	classSubjectId := c.Param("class_subject_id")
+	existingClassSubject := m.ClassSubject{}
+	existingClassSubjectQuery := handler.db.Where("id = ? AND created_by = ?", classSubjectId, creatorId).First(&existingClassSubject)
+
+	if (existingClassSubjectQuery.RowsAffected > 0) {
+		//check if class is existing
+		class := m.QryClassSchools{}
+		classQuery := handler.db.Where("class_id = ? AND created_by = ?", c.PostForm("class_id"), creatorId).First(&class)
+
+		if classQuery.RowsAffected > 0 {
+			//check if subject is existing
+			subject := m.Subject{}
+			subjectQuery := handler.db.Where("id = ? and created_by = ?", c.PostForm("subject_id"), creatorId).First(&subject)
+
+			if subjectQuery.RowsAffected > 0 {
+				existingClassSubject.ClassId = c.PostForm("class_id")
+				existingClassSubject.SubjectId = c.PostForm("subject_id")
+				updateResult := handler.db.Save(&existingClassSubject)
+				if updateResult.RowsAffected > 0 {
+					qrySubjectClass := m.QryClassSubjects{}
+					handler.db.Where("class_subject_id = ?", classSubjectId).First(&qrySubjectClass)
+					c.JSON(http.StatusOK, qrySubjectClass)
+				} else {
+					respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
+				}
+			} else {
+				respond(http.StatusBadRequest, "Subject record does not exist.", c, true)
+			}
+		} else {
+			respond(http.StatusBadRequest, "Class record does not exist.", c, true)
+		}
+	} else {
+		respond(http.StatusNotFound, "Record not found.", c, true)
+	}
+	return
+}
+
 func (handler ClassSubject) Show(c *gin.Context) {
 	subjectCode := c.Param("subject_code")
 	subject := m.Subject{}
@@ -116,38 +157,21 @@ func (handler ClassSubject) Show(c *gin.Context) {
 	return
 }
 
-func (handler ClassSubject) Update(c *gin.Context) {
-	subjectCode := c.Param("subject_code")
-	subject := m.Subject{}
-	subjectQuery := handler.db.Where("subject_code = ? AND created_by = ?", subjectCode, GetCreator(c)).First(&subject)
+func (handler ClassSubject) Delete(c *gin.Context) {
+	classSubjectId := c.Param("class_subject_id")
+	existingClassSubject := m.ClassSubject{}
+	existingClassSubjectQuery := handler.db.Where("id = ? AND created_by = ?", classSubjectId, GetCreator(c)).First(&existingClassSubject)
 
-	if subjectQuery.RowsAffected > 0 {
-		existingSubject := m.Subject{}
-		existingSubjectQuery := handler.db.Where("subject_code = ? AND id != ? AND created_by", c.PostForm("subject_code"), subject.Id, GetCreator(c)).First(&existingSubject)
-
-		if existingSubjectQuery.RowsAffected == 0 {
-			if (c.PostForm("subject_name") != "") {
-				subject.SubjectName = c.PostForm("subject_name")
-			}
-			
-			if (c.PostForm("subject_code") != "") {
-				subject.SubjectCode = c.PostForm("subject_code")
-			}
-
-			if (c.PostForm("description") != "") {
-				subject.Description = c.PostForm("description")
-			}
-
-			updateResult := handler.db.Save(&subject)
-			if updateResult.RowsAffected > 0 {
-				c.JSON(http.StatusOK, subject)
-			} else {
-				respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
-			}
+	if (existingClassSubjectQuery.RowsAffected > 0) {
+		deleteResult := handler.db.Delete(&existingClassSubject)
+		if deleteResult.RowsAffected > 0 {
+			respond(http.StatusOK, "Record successfully deleted.", c, false)
 		} else {
-			respond(http.StatusBadRequest, "Subject code already existing.", c, true)
+			respond(http.StatusBadRequest, deleteResult.Error.Error(), c, true)
 		}
 	} else {
-		respond(http.StatusNotFound, "Subject record not found", c, true)
+		respond(http.StatusNotFound, "Record not found.", c, true)
 	}
+	return
 }
+
