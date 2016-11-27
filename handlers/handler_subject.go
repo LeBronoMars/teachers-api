@@ -95,7 +95,7 @@ func (handler SubjectHandler) Show(c *gin.Context) {
 	if subjectQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, subject)
 	} else {
-		respond(http.StatusNotFound, "Subject record not found", c, true)
+		respond(http.StatusNotFound, "Subject record not found.", c, true)
 	}
 	return
 }
@@ -132,24 +132,32 @@ func (handler SubjectHandler) Update(c *gin.Context) {
 			respond(http.StatusBadRequest, "Subject code already existing.", c, true)
 		}
 	} else {
-		respond(http.StatusNotFound, "Subject record not found", c, true)
+		respond(http.StatusNotFound, "Subject record not found.", c, true)
 	}
 }
 
 func (handler SubjectHandler) Delete(c *gin.Context) {
+	creatorId := GetCreator(c)
 	subjectId := c.Param("subject_id")
 	subject := m.Subject{}
-	subjectQuery := handler.db.Where("id = ? and created_by = ?", subjectId, GetCreator(c)).First(&subject)
+	subjectQuery := handler.db.Where("id = ? and created_by = ?", subjectId, creatorId).First(&subject)
 
 	if subjectQuery.RowsAffected > 0 {
-		deleteResult := handler.db.Delete(&subject)
-		if deleteResult.RowsAffected > 0 {
-			respond(http.StatusOK, "Subject successfully deleted", c, false)
+				existingClassSubject := m.ClassSubject{}
+		existingClassSubjectQuery := handler.db.Where("created_by = ? AND subject_id = ? AND deleted_at is NULL", creatorId, subjectId).First(&existingClassSubject)
+
+		if existingClassSubjectQuery.RowsAffected == 0 {
+			deleteResult := handler.db.Delete(&subject)
+			if deleteResult.RowsAffected > 0 {
+				respond(http.StatusOK, "Subject successfully deleted.", c, false)
+			} else {
+				respond(http.StatusBadRequest, deleteResult.Error.Error(), c, true)
+			}
 		} else {
-			respond(http.StatusBadRequest, deleteResult.Error.Error(), c, true)
+			respond(http.StatusBadRequest, "Unable to deletedrecord, this subject is related in class subject assignment.", c, true)
 		}
 	} else {
-		respond(http.StatusNotFound, "Subject record not found", c, true)
+		respond(http.StatusNotFound, "Subject record not found.", c, true)
 	}
 	return
 }

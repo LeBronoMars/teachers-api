@@ -65,12 +65,12 @@ func (handler ClassSubject) Create(c *gin.Context) {
 		creatorId := GetCreator(c)
 		//check if class is existing
 		class := m.QryClassSchools{}
-		classQuery := handler.db.Where("class_id = ? AND created_by = ?", classSubject.ClassId, creatorId).First(&class)
+		classQuery := handler.db.Where("class_id = ? AND created_by = ? AND deleted_at is NULL", classSubject.ClassId, creatorId).First(&class)
 
 		if classQuery.RowsAffected > 0 {
 			//check if subject is existing
 			subject := m.Subject{}
-			subjectQuery := handler.db.Where("id = ? and created_by = ?", classSubject.SubjectId, creatorId).First(&subject)
+			subjectQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", classSubject.SubjectId, creatorId).First(&subject)
 
 			if subjectQuery.RowsAffected > 0 {
 				existingClassSubject := m.ClassSubject{}

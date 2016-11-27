@@ -68,7 +68,7 @@ func (handler ClassHandler) Index(c *gin.Context) {
 		query = query.Where("school_year = ?", schoolYearParam)
 	} 
 
-	query.Where("created_by = ?", GetCreator(c)).Find(&classess)
+	query.Where("created_by = ? AND deleted_at is NULL", GetCreator(c)).Find(&classess)
 	c.JSON(http.StatusOK, classess)	
 	return
 }
@@ -84,7 +84,7 @@ func (handler ClassHandler) Create(c *gin.Context) {
 		if existingSchoolQuery.RowsAffected > 0 {
 			//check if class is already existing
 			existingClass := m.Class{}
-			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ?", newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
+			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
 
 			if existingClassQuery.RowsAffected == 0 {
 				if (c.PostForm("id") == "") {
@@ -94,7 +94,7 @@ func (handler ClassHandler) Create(c *gin.Context) {
 				saveResult := handler.db.Create(&newClass)
 				if (saveResult.RowsAffected > 0) {
 					qryNewClass := m.QryClassSchools{}
-					handler.db.Where("class_id = ?", newClass.Id).First(&qryNewClass)
+					handler.db.Where("class_id = ? AND deleted_at is NULL", newClass.Id).First(&qryNewClass)
 					c.JSON(http.StatusCreated, qryNewClass)
 				} else {
 					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
@@ -114,7 +114,7 @@ func (handler ClassHandler) Create(c *gin.Context) {
 //show specic class
 func (handler ClassHandler) Show(c *gin.Context) {
 	class := m.QryClassSchools{}
-	query := handler.db.Where("class_id = ? AND created_by = ?", c.Param("class_id"), GetCreator(c)).First(&class)
+	query := handler.db.Where("class_id = ? AND created_by = ? AND deleted_at is NULL", c.Param("class_id"), GetCreator(c)).First(&class)
 	if query.RowsAffected > 0 {
 		c.JSON(http.StatusOK, class)
 	} else {
@@ -129,11 +129,11 @@ func (handler ClassHandler) Update(c *gin.Context) {
 		respond(http.StatusBadRequest, "Nothing to update.", c, true)
 	} else {
 		class := m.Class{}
-		query := handler.db.Where("id = ? AND created_by = ?", c.Param("class_id"), GetCreator(c)).First(&class)
+		query := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", c.Param("class_id"), GetCreator(c)).First(&class)
 		if query.RowsAffected > 0 {
 			//check if class is already existing
 			existingClass := m.Class{}
-			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ?", c.PostForm("section"), c.PostForm("grade_level"), GetCreator(c)).First(&existingClass)
+			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", c.PostForm("section"), c.PostForm("grade_level"), GetCreator(c)).First(&existingClass)
 			if existingClassQuery.RowsAffected == 0 {
 
 				if (c.PostForm("grade_level") != "") {
@@ -160,6 +160,31 @@ func (handler ClassHandler) Update(c *gin.Context) {
 	}
 	return
 }
+
+func (handler ClassHandler) Delete(c *gin.Context) {
+	creatorId := GetCreator(c)
+	class := m.Class{}
+	query := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", c.Param("class_id"), creatorId).First(&class)
+	if query.RowsAffected > 0 {
+		existingClassSubject := m.ClassSubject{}
+		existingClassSubjectQuery := handler.db.Where("created_by = ? AND class_id = ? AND deleted_at is NULL", creatorId, c.Param("class_id")).First(&existingClassSubject)
+
+		if existingClassSubjectQuery.RowsAffected == 0 {
+			deleteResult := handler.db.Delete(&class)
+			if deleteResult.RowsAffected > 0 {
+				respond(http.StatusOK, "Class record successfully deleted.", c, false)
+			} else {
+				respond(http.StatusBadRequest, deleteResult.Error.Error(), c, true)
+			}
+		} else {
+			respond(http.StatusBadRequest, "Unable to delete record, this class is related in class subject assignment.", c, true)
+		}
+	} else {
+		respond(http.StatusNotFound, "Class record not found.", c, true)
+	}
+	return
+}
+
 
 
 
