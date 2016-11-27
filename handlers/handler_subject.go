@@ -62,7 +62,7 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 
 	if err == nil {
 		existingSubject := m.Subject{}
-		existingSubjectQuery := handler.db.Where("subject_code = ? AND created_by = ?", c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
+		existingSubjectQuery := handler.db.Where("subject_code = ? AND created_by = ? AND deleted_at is NULL", c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
 
 		if existingSubjectQuery.RowsAffected == 0 {
 			if (c.PostForm("id") == "") {
@@ -88,9 +88,9 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 }
 
 func (handler SubjectHandler) Show(c *gin.Context) {
-	subjectCode := c.Param("subject_code")
+	subjectId := c.Param("subject_id")
 	subject := m.Subject{}
-	subjectQuery := handler.db.Where("subject_code = ? and created_by = ?", subjectCode, GetCreator(c)).First(&subject)
+	subjectQuery := handler.db.Where("id = ? and created_by = ? AND deleted_at is NULL", subjectId, GetCreator(c)).First(&subject)
 
 	if subjectQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, subject)
@@ -101,13 +101,13 @@ func (handler SubjectHandler) Show(c *gin.Context) {
 }
 
 func (handler SubjectHandler) Update(c *gin.Context) {
-	subjectCode := c.Param("subject_code")
+	subjectId := c.Param("subject_id")
 	subject := m.Subject{}
-	subjectQuery := handler.db.Where("subject_code = ? AND created_by = ?", subjectCode, GetCreator(c)).First(&subject)
+	subjectQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", subjectId, GetCreator(c)).First(&subject)
 
 	if subjectQuery.RowsAffected > 0 {
 		existingSubject := m.Subject{}
-		existingSubjectQuery := handler.db.Where("subject_code = ? AND id != ? AND created_by = ?", c.PostForm("subject_code"), subject.Id, GetCreator(c)).First(&existingSubject)
+		existingSubjectQuery := handler.db.Where("subject_code = ? AND id != ? AND created_by = ? AND deleted_at is NULL", c.PostForm("subject_code"), subject.Id, GetCreator(c)).First(&existingSubject)
 
 		if existingSubjectQuery.RowsAffected == 0 {
 			if (c.PostForm("subject_name") != "") {
@@ -134,4 +134,22 @@ func (handler SubjectHandler) Update(c *gin.Context) {
 	} else {
 		respond(http.StatusNotFound, "Subject record not found", c, true)
 	}
+}
+
+func (handler SubjectHandler) Delete(c *gin.Context) {
+	subjectId := c.Param("subject_id")
+	subject := m.Subject{}
+	subjectQuery := handler.db.Where("id = ? and created_by = ?", subjectId, GetCreator(c)).First(&subject)
+
+	if subjectQuery.RowsAffected > 0 {
+		deleteResult := handler.db.Delete(&subject)
+		if deleteResult.RowsAffected > 0 {
+			respond(http.StatusOK, "Subject successfully deleted", c, false)
+		} else {
+			respond(http.StatusBadRequest, deleteResult.Error.Error(), c, true)
+		}
+	} else {
+		respond(http.StatusNotFound, "Subject record not found", c, true)
+	}
+	return
 }
