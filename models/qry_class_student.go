@@ -6,7 +6,7 @@ type QryClassStudents struct {
 	ClassStudentId string `json:"class_student_id"`
 	ClassStudentCreatedAt string `json:"class_student_created_at"`
 	ClassStudentUpdatedAt string `json:"class_student_updated_at"`
-	ClassStudentDeletedAt time  `json:"class_student_deleted_at"`
+	ClassStudentDeletedAt time.Time  `json:"class_student_deleted_at"`
 	ClassStudentCreatedBy string `json:"class_student_created_by"`
 	StudentId string `json:"student_id"`
 	StudentCreatedAt string `json:"student_created_at"`
