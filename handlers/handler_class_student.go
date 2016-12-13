@@ -70,7 +70,7 @@ func (handler ClassStudent) Index(c *gin.Context) {
 		query = query.Where("class_section = ?", classSectionParam)
 	}
 
-	query.Where("class_student_created_by = ? AND class_student_deleted_at = ?", GetCreator(c), "").Find(&qryClassStudent)
+	query.Where("class_student_created_by = ? AND class_student_deleted_at is NULL", GetCreator(c)).Find(&qryClassStudent)
 	c.JSON(http.StatusOK, qryClassStudent)
 	return
 }
