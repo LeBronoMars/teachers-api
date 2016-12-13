@@ -1,15 +1,17 @@
 package models
 
+import "time"
+
 type QryClassStudents struct {
 	ClassStudentId string `json:"class_student_id"`
-	ClassStudentCreatedAt string `json:"class_student_created_at"`
-	ClassStudentUpdatedAt string `json:"class_student_updated_at"`
-	ClassStudentDeletedAt string  `json:"class_student_deleted_at"`
+	ClassStudentCreatedAt time.Time `json:"class_student_created_at"`
+	ClassStudentUpdatedAt time.Time `json:"class_student_updated_at"`
+	ClassStudentDeletedAt *time.Time  `json:"class_student_deleted_at"`
 	ClassStudentCreatedBy string `json:"class_student_created_by"`
 	StudentId string `json:"student_id"`
-	StudentCreatedAt string `json:"student_created_at"`
-	StudentUpdatedAt string `json:"student_udpated_at"`
-	StudentDeletedAt string `json:"student_deleted_at"`
+	StudentCreatedAt time.Time `json:"student_created_at"`
+	StudentUpdatedAt time.Time `json:"student_udpated_at"`
+	StudentDeletedAt *time.Time `json:"student_deleted_at"`
 	StudentNo string `json:"student_no"`
 	StudentFirstName string `json:"student_first_name"`
 	StudentMiddleName string `json:"student_middle_name"`
@@ -25,7 +27,7 @@ type QryClassStudents struct {
 	ClassSubjectId string `json:"class_subject_id"`
 	ClassSubjectIsSynced bool `json:"class_subject_id_is_synced"`
 	ClassSubjectCreatedBy string `json:"class_subject_created_by"`
-	ClassSubjectDeletedAt string `json:"class_subject_deleted_at"`
+	ClassSubjectDeletedAt *time.Time `json:"class_subject_deleted_at"`
 	ClassId string `json:"class_id"`
 	ClassIsSynced string `json:"class_is_synced"`
 	ClassGradeLevel string `json:"class_grade_level"`
