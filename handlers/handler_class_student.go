@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -14,6 +15,65 @@ type ClassStudent struct {
 
 func NewClassStudent(db *gorm.DB) *ClassStudent {
 	return &ClassStudent{db}
+}
+
+//get all class student
+func (handler ClassStudent) Index(c *gin.Context) {
+	qryClassStudent := []m.QryClassStudents{}	
+	
+	var query = handler.db
+
+	startParam, startParamExist := c.GetQuery("start")
+	limitParam, limitParamExist := c.GetQuery("limit")
+	orderParam, orderParamExist := c.GetQuery("order")
+	subjectCodeParam, subjectCodeParamExist := c.GetQuery("subject_code")
+	teacherEmpNoParam, teacherEmpNoParamExist := c.GetQuery("teacher_employee_no")
+	gradeLevelParam, gradeLevelParamExist := c.GetQuery("class_grade_level")
+	classSectionParam, classSectionParamExist := c.GetQuery("class_section")
+
+	//start param exist
+	if startParamExist {
+		start,_ := strconv.Atoi(startParam)
+		if start != 0 {
+			query = query.Offset(start)				
+		} else {
+			query = query.Offset(0)
+		}
+	} 
+
+	//limit param exist
+	if limitParamExist {
+		limit,_ := strconv.Atoi(limitParam)
+		query = query.Limit(limit)
+	} else {
+		query = query.Limit(10)
+	}
+
+	//sort param exist
+	if orderParamExist {
+		query = query.Order(orderParam)
+	} 
+
+	if subjectCodeParamExist {
+		query = query.Where("subject_code = ?", subjectCodeParam)
+	}
+
+	if teacherEmpNoParamExist {
+		query = query.Where("teacher_employee_no = ?", teacherEmpNoParam)
+	}
+
+	if gradeLevelParamExist {
+		query = query.Where("class_grade_level = ?", gradeLevelParam)
+	}
+
+	if classSectionParamExist {
+		query = query.Where("class_section = ?", classSectionParam)
+	}
+
+	query.Where("class_student_created_by = ? AND class_student_deleted_at is NULL", GetCreator(c)).Find(&qryClassStudent)
+	//query.Where("class_subject_created_by = ?", GetCreator(c)).Find(&qryClassStudent)
+	c.JSON(http.StatusOK, qryClassStudent)
+	return
 }
 
 //create new student
