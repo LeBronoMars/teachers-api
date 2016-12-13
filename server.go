@@ -124,7 +124,7 @@ func Auth(secret string) gin.HandlerFunc {
 }
 
 func InitDB() *gorm.DB {
-	dbURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
+	dbURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True",
 		config.GetString("DB_USER"), config.GetString("DB_PASS"),
 		config.GetString("DB_HOST"), config.GetString("DB_PORT"),
 		config.GetString("DB_NAME"))
