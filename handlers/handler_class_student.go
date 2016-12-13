@@ -71,7 +71,6 @@ func (handler ClassStudent) Index(c *gin.Context) {
 	}
 
 	query.Where("class_student_created_by = ? AND class_student_deleted_at is NULL", GetCreator(c)).Find(&qryClassStudent)
-	//query.Where("class_subject_created_by = ?", GetCreator(c)).Find(&qryClassStudent)
 	c.JSON(http.StatusOK, qryClassStudent)
 	return
 }
