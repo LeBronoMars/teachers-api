@@ -203,13 +203,13 @@ func (handler UserHandler) ForgotPassword(c *gin.Context) {
 		respond(http.StatusPreconditionFailed, "Email is required.", c, true)
 	} else {
 		user := m.User{}
-		qry := handler.db.Where("id = ?", email).First(&user)
+		qry := handler.db.Where("email = ?", email).First(&user)
 
 		if qry.RowsAffected > 0 {
 			from := "1sanmateo.app@gmail.com"
 			pass := "sanmateo851troy"
 
-			newPassword := RandomString(12)
+			newPassword := RandomString(8)
 
 	  		msg := "From: " + from + "\r\n" +
 	           	"To: " + user.Email + "\r\n" + 
@@ -230,9 +230,9 @@ func (handler UserHandler) ForgotPassword(c *gin.Context) {
 				user.Password = encryptedPassword
 				updateResult := handler.db.Save(&user)
 				if updateResult.RowsAffected > 0 {
-					respond(http.StatusOK, "Your new password was successfully sent to your email",c,false)
+					respond(http.StatusOK, "Your new password was successfully sent to your email", c, false)
 				} else {
-					respond(http.StatusBadRequest, updateResult.Error.Error(),c,true)
+					respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
 				}
 			}
 		} else {
