@@ -35,6 +35,7 @@ func (u *User) BeforeCreate() (err error) {
 	u.Status = "active"
 	u.IsSynced = true
 	defaultPic := fmt.Sprintf("%x", md5.Sum([]byte(u.Email)))
+	u.Password = encrypt([]byte("vz7oWXaUm691nvAwXJuvs9U6UM04ZZs0"), u.Password)
 	u.PicUrl = fmt.Sprintf("http://www.gravatar.com/avatar/%s?d=identicon", defaultPic)
 	return
 }
