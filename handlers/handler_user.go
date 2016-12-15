@@ -43,24 +43,42 @@ func (handler UserHandler) Create(c *gin.Context) {
 			} else {
 				//check if employee no. is already in use
 				existingUser := m.User{}
-				if handler.db.Where("employee_no = ?", user.EmployeeNo).First(&existingUser).RowsAffected > 0 {
-					respond(http.StatusPreconditionFailed, "Employee no already in use.", c, true)
-				} else {
-					if handler.db.Where("email = ?", user.Email).First(&existingUser).RowsAffected < 1 {
-						encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
-						user.Password = encryptedPassword
-						if (c.PostForm("id") == "") {
-							user.Id = GenerateID()
-						}
-						result := handler.db.Create(&user)
-						if result.RowsAffected > 0 {
-							token := &JWT{Token: generateJWT(user.Id)}
-							c.JSON(http.StatusCreated, token)
+				if handler.db.Where("id = ?", user.Id).First(&existingUser).RowsAffected > 0 {
+					existingUserByEmail := m.User{}
+					if handler.db.Where("email = ? AND id != ?", user.Email, user.Id).First(&existingUserByEmail).RowsAffected < 1 {
+						existingUserByEmpNo := m.User{}
+						if handler.db.Where("employee_no = ? AND id != ?", user.EmployeeNo, user.Id).First(&existingUserByEmpNo).RowsAffected < 1 {
+							result := handler.db.Model(&existingUser).Update(&user)
+							if result.RowsAffected > 0 {
+								respond(http.StatusOK, "User record successfully updated.", c , false)
+							} else if result.Error != nil {
+								respond(http.StatusBadRequest, result.Error.Error(), c, true)
+							} else {
+								respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+							}
 						} else {
-							respond(http.StatusBadRequest, result.Error.Error(), c , true)
+							respond(http.StatusForbidden, "Employee no. already taken.", c , true)
 						}
 					} else {
-						respond(http.StatusForbidden, "Email already taken", c , true)	
+						respond(http.StatusForbidden, "Email already taken.", c , true)	
+					}
+				} else {
+					if handler.db.Where("email = ?", user.Email).First(&existingUser).RowsAffected < 1 {
+						if handler.db.Where("employee_no = ?", user.EmployeeNo).First(&existingUser).RowsAffected < 1 {
+							encryptedPassword := encrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
+							user.Password = encryptedPassword
+							result := handler.db.Create(&user)
+							if result.RowsAffected > 0 {
+								token := &JWT{Token: generateJWT(user.Id)}
+								c.JSON(http.StatusCreated, token)
+							} else {
+								respond(http.StatusBadRequest, result.Error.Error(), c , true)
+							}
+						} else {
+							respond(http.StatusForbidden, "Employee no. already taken.", c , true)		
+						}
+					} else {
+						respond(http.StatusForbidden, "Email already taken.", c , true)	
 					}
 				}
 			}
