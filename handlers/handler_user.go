@@ -50,6 +50,8 @@ func (handler UserHandler) Create(c *gin.Context) {
 						if handler.db.Where("employee_no = ? AND id != ?", user.EmployeeNo, user.Id).First(&existingUserByEmpNo).RowsAffected < 1 {
 							result := handler.db.Model(&existingUser).Update(&user)
 							if result.RowsAffected > 0 {
+								existingUser.Password = encrypt([]byte(config.GetString("CRYPT_KEY")), user.Password)
+								handler.db.Save(&existingUser)
 								respond(http.StatusOK, "User record successfully updated.", c , false)
 							} else if result.Error != nil {
 								respond(http.StatusBadRequest, result.Error.Error(), c, true)
