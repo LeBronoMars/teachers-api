@@ -61,25 +61,41 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 	err := c.Bind(&newSubject)
 
 	if err == nil {
-		existingSubject := m.Subject{}
-		existingSubjectQuery := handler.db.Where("subject_code = ? AND created_by = ? AND deleted_at is NULL", c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
-
-		if existingSubjectQuery.RowsAffected == 0 {
-			if (c.PostForm("id") == "") {
-				newSubject.Id = GenerateID()
-			}
-			if (c.PostForm("description") != "") {
-				newSubject.Description = c.PostForm("description")				
-			}
-			newSubject.CreatedBy = GetCreator(c)
-			saveResult := handler.db.Create(&newSubject)
-			if saveResult.RowsAffected > 0 {
-				c.JSON(http.StatusCreated, newSubject)
+		existingSubjectById := m.Subject{}
+		if handler.db.Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
+			existingSubject := m.Subject{}
+			existingSubjectQuery := handler.db.Where("id != ? AND subject_code = ? AND created_by = ? AND deleted_at is NULL", newSubject.Id, c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
+			
+			if existingSubjectQuery.RowsAffected > 0 {
+				respond(http.StatusBadRequest, "Subject code already existing.", c, true)
 			} else {
-				respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
-			}
+				result := handler.db.Model(&existingSubjectById).Update(&newSubject)
+				if result.RowsAffected > 0 {
+					c.JSON(http.StatusOK, newSubject)
+				} else if result.Error != nil {
+					respond(http.StatusBadRequest, result.Error.Error(), c, true)
+				} else {
+					respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+				}
+			}	
 		} else {
-			respond(http.StatusBadRequest, "Subject code already existing.", c, true)
+			existingSubject := m.Subject{}
+			existingSubjectQuery := handler.db.Where("subject_code = ? AND created_by = ? AND deleted_at is NULL", c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
+
+			if existingSubjectQuery.RowsAffected == 0 {
+				if (c.PostForm("description") != "") {
+					newSubject.Description = c.PostForm("description")				
+				}
+				newSubject.CreatedBy = GetCreator(c)
+				saveResult := handler.db.Create(&newSubject)
+				if saveResult.RowsAffected > 0 {
+					c.JSON(http.StatusCreated, newSubject)
+				} else {
+					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+				}
+			} else {
+				respond(http.StatusBadRequest, "Subject code already existing.", c, true)
+			}
 		}
 	} else {
 		respond(http.StatusBadRequest, err.Error(), c, true)
