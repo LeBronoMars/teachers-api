@@ -61,24 +61,39 @@ func (handler StudentHandler) Create(c *gin.Context) {
 	err := c.Bind(&student)
 
 	if err == nil {
-		if (c.PostForm("id") == "") {
-			student.Id = GenerateID()
-		}
-		existingStudent := m.Student{}
-		existingStudentResult := handler.db.Where("student_no = ? AND created_by = ? AND deleted_at is NULL", student.StudentNo, GetCreator(c)).First(&existingStudent)
-		if existingStudentResult.RowsAffected > 0 {
-			respond(http.StatusBadRequest, "Student no. already used.", c, true)
-		} else {
-			student.CreatedBy = GetCreator(c)
-			saveResult := handler.db.Create(&student)
-			if saveResult.RowsAffected > 0 {
-				c.JSON(http.StatusCreated, student)
+		existingStudentById := m.Student{}
+		if handler.db.Where("id = ?", student.Id).First(&existingStudentById).RowsAffected > 0 {
+			existingStudent := m.Student{}
+			existingStudentResult := handler.db.Where("id != ? AND student_no = ? AND created_by = ? AND deleted_at is NULL", student.Id, student.StudentNo, GetCreator(c)).First(&existingStudent)
+			if existingStudentResult.RowsAffected > 0 {
+				respond(http.StatusBadRequest, "Student no. already used.", c, true)
 			} else {
-				respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+				result := handler.db.Model(&existingStudentById).Update(&student)
+				if result.RowsAffected > 0 {
+					c.JSON(http.StatusOK, student)
+				} else if result.Error != nil {
+					respond(http.StatusBadRequest, result.Error.Error(), c, true)
+				} else {
+					respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+				}
+			}	
+		} else {
+			existingStudent := m.Student{}
+			existingStudentResult := handler.db.Where("student_no = ? AND created_by = ? AND deleted_at is NULL", student.StudentNo, GetCreator(c)).First(&existingStudent)
+			if existingStudentResult.RowsAffected > 0 {
+				respond(http.StatusBadRequest, "Student no. already used.", c, true)
+			} else {
+				student.CreatedBy = GetCreator(c)
+				saveResult := handler.db.Create(&student)
+				if saveResult.RowsAffected > 0 {
+					c.JSON(http.StatusCreated, student)
+				} else {
+					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+				}
 			}
 		}
 	} else {
-		respond(http.StatusBadRequest,err.Error(),c,true)
+		respond(http.StatusBadRequest, err.Error(), c, true)
 	}
 	return
 }

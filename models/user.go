@@ -34,7 +34,7 @@ func (u *User) BeforeCreate() (err error) {
 	return
 }
 
-func (u *User) BeforeUpdate() (err error) {
+func (u *User) AfterUpdate() (err error) {
 	u.IsSynced = true
 	return
 }
