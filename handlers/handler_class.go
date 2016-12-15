@@ -82,25 +82,42 @@ func (handler ClassHandler) Create(c *gin.Context) {
 		school := m.School{}
 		existingSchoolQuery := handler.db.Where("id = ?", newClass.School).First(&school)
 		if existingSchoolQuery.RowsAffected > 0 {
-			//check if class is already existing
-			existingClass := m.Class{}
-			existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
 
-			if existingClassQuery.RowsAffected == 0 {
-				if (c.PostForm("id") == "") {
-					newClass.Id = GenerateID()
-				}
-				newClass.CreatedBy = GetCreator(c)
-				saveResult := handler.db.Create(&newClass)
-				if (saveResult.RowsAffected > 0) {
-					qryNewClass := m.QryClassSchools{}
-					handler.db.Where("class_id = ? AND deleted_at is NULL", newClass.Id).First(&qryNewClass)
-					c.JSON(http.StatusCreated, qryNewClass)
+			existingClassById := m.Class{}
+			if handler.db.Where("id = ?", newClass.Id).First(&existingClassById).RowsAffected > 0 {
+				existingClass := m.Class{}
+				existingClassQuery := handler.db.Where("id != ? AND section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", newClass.Id, newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
+
+				if existingClassQuery.RowsAffected > 0 {
+					respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
 				} else {
-					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
-				}
+					result := handler.db.Model(&existingClassById).Update(&newClass)
+					if result.RowsAffected > 0 {
+						c.JSON(http.StatusOK, newClass)
+					} else if result.Error != nil {
+						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					} else {
+						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					}
+				}	
 			} else {
-				respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
+				//check if class is already existing
+				existingClass := m.Class{}
+				existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
+
+				if existingClassQuery.RowsAffected == 0 {
+					newClass.CreatedBy = GetCreator(c)
+					saveResult := handler.db.Create(&newClass)
+					if (saveResult.RowsAffected > 0) {
+						qryNewClass := m.QryClassSchools{}
+						handler.db.Where("class_id = ? AND deleted_at is NULL", newClass.Id).First(&qryNewClass)
+						c.JSON(http.StatusCreated, qryNewClass)
+					} else {
+						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+					}
+				} else {
+					respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
+				}
 			}
 		} else {
 			respond(http.StatusNotFound, "School not found.", c, true)

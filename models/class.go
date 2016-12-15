@@ -25,3 +25,8 @@ func (c *Class) BeforeCreate() (err error) {
 	}
 	return
 }
+
+func (c *Class) BeforeUpdate() (err error) {
+	c.IsSynced = true
+	return
+}
