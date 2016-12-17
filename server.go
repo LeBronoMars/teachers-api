@@ -98,6 +98,15 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	private.GET("/schedule", scheduleHandler.Index)
 	private.POST("/schedule", scheduleHandler.Create)
 	private.DELETE("/schedule/:id", scheduleHandler.Delete)
+	private.GET("/schedule/:id", scheduleHandler.Show)
+
+	//manage attendance
+	attendanceHandler := h.NewAttendanceHandler(db)
+	private.GET("/attendance", attendanceHandler.Index)
+	private.POST("/attendance", attendanceHandler.Create)
+	private.DELETE("/attendance/:id", attendanceHandler.Delete)
+	private.GET("/attendance/:id", attendanceHandler.Show)
+
 	r.Run(fmt.Sprintf(":%s", "8080"))
 }
 
@@ -148,7 +157,8 @@ func InitDB() *gorm.DB {
 																&m.Subject{},
 																&m.ClassSubject{},
 																&m.ClassStudent{},
-																&m.Schedule{})
+																&m.Schedule{},
+																&m.Attendance{})
 	return _db
 }
 

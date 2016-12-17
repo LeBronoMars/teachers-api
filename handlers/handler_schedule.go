@@ -118,6 +118,17 @@ func (handler ScheduleHandler) Delete(c *gin.Context) {
 	return
 }
 
+func (handler ScheduleHandler) Show(c *gin.Context) {
+	id := c.Param("id")
+	schedule := m.Schedule{}
+	scheduleQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", id, GetCreator(c)).First(&schedule)
 
+	if scheduleQuery.RowsAffected > 0 {
+		c.JSON(http.StatusOK, schedule)
+	} else {
+		respond(http.StatusNotFound, "Schedule record not found", c, true)
+	}
+	return
+}
 
 
