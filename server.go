@@ -143,7 +143,7 @@ func InitDB() *gorm.DB {
 																&m.Subject{},
 																&m.ClassSubject{},
 																&m.ClassStudent{})
-	return _db
+	return &_db
 }
 
 func InitPusher() *pusher.Client {
