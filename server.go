@@ -95,6 +95,7 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 
 	//manage schedule
 	scheduleHandler := h.NewScheduleHandler(db)
+	private.GET("/schedule", scheduleHandler.Index)
 	private.POST("/schedule", scheduleHandler.Create)
 	private.DELETE("/schedule/:id", scheduleHandler.Delete)
 	r.Run(fmt.Sprintf(":%s", "8080"))

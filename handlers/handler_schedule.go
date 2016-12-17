@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -14,6 +15,50 @@ type ScheduleHandler struct {
 
 func NewScheduleHandler(db *gorm.DB) *ScheduleHandler {
 	return &ScheduleHandler{db}
+}
+
+//get all class
+func (handler ScheduleHandler) Index(c *gin.Context) {
+	schedules := []m.Schedule{}		
+	
+	var query = handler.db
+
+	startParam, startParamExist := c.GetQuery("start")
+	limitParam, limitParamExist := c.GetQuery("limit")
+	orderParam, orderParamExist := c.GetQuery("order")
+	roomParam, roomParamExist := c.GetQuery("room")
+
+	//start param exist
+	if startParamExist {
+		start,_ := strconv.Atoi(startParam)
+		if start != 0 {
+			query = query.Offset(start)				
+		} else {
+			query = query.Offset(0)
+		}
+	} 
+
+	//limit param exist
+	if limitParamExist {
+		limit,_ := strconv.Atoi(limitParam)
+		query = query.Limit(limit)
+	} else {
+		query = query.Limit(10)
+	}
+
+	//sort param exist
+	if orderParamExist {
+		query = query.Order(orderParam)
+	} 
+
+	//section param exist
+	if roomParamExist {
+		query = query.Where("section = ?", roomParam)
+	} 
+
+	query.Where("created_by = ? AND deleted_at is NULL", GetCreator(c)).Find(&schedules)
+	c.JSON(http.StatusOK, schedules)	
+	return
 }
 
 //create new schedule
