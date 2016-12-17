@@ -12,3 +12,13 @@ type BaseModel struct {
 	IsSynced bool `json:"is_synced" form:"is_synced"`
 	CreatedBy string `json:"created_by,omitempty"`
 }
+
+func (b *BaseModel) BeforeUpdate() (err error) {
+	b.IsSynced = true
+	return
+}
+
+func (b *BaseModel) BeforeCreate() (err error) {
+	b.IsSynced = true
+	return
+}

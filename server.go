@@ -107,6 +107,13 @@ func LoadAPIRoutes(r *gin.Engine, db *gorm.DB, pusher *pusher.Client) {
 	private.DELETE("/attendance/:id", attendanceHandler.Delete)
 	private.GET("/attendance/:id", attendanceHandler.Show)
 
+	//manage grade status
+	gradeStatusHandler := h.NewGradeStatusHandler(db)
+	private.GET("/grade_status", gradeStatusHandler.Index)
+	private.POST("/grade_status", gradeStatusHandler.Create)
+	private.DELETE("/grade_status/:id", gradeStatusHandler.Delete)
+	private.GET("/grade_status/:id", gradeStatusHandler.Show)
+
 	r.Run(fmt.Sprintf(":%s", "8080"))
 }
 
@@ -158,7 +165,8 @@ func InitDB() *gorm.DB {
 																&m.ClassSubject{},
 																&m.ClassStudent{},
 																&m.Schedule{},
-																&m.Attendance{})
+																&m.Attendance{},
+																&m.GradeStatus{})
 	return _db
 }
 
