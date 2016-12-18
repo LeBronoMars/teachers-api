@@ -22,3 +22,13 @@ func (b *BaseModel) BeforeCreate() (err error) {
 	b.IsSynced = true
 	return
 }
+
+func (b *BaseModel) AfterUpdate() (err error) {
+	b.IsSynced = true
+	return
+}
+
+func (b *BaseModel) AfterCreate() (err error) {
+	b.IsSynced = true
+	return
+}
