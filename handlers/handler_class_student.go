@@ -84,37 +84,36 @@ func (handler ClassStudent) Create(c *gin.Context) {
 		creatorId := GetCreator(c)
 
 		//check if class subject is existing
-		qrySubjectClass := m.QryClassSubjects{}
-		qrySubjectClassQuery := handler.db.Where("class_subject_id = ?", classStudent.ClassSubjectId).First(&qrySubjectClass)
+		existingClass := m.Class{}
+		existingClassQuery := handler.db.Where("id = ?", classStudent.ClassId).First(&existingClass)
 	
-		if qrySubjectClassQuery.RowsAffected > 0 {
+		if existingClassQuery.RowsAffected > 0 {
 			//check if student is existing
 			student := m.Student{}
 			studentQuery := handler.db.Where("id = ? AND created_by = ? AND deleted_at is NULL", classStudent.StudentId, creatorId).First(&student)
 
 			if studentQuery.RowsAffected > 0 {
-				existingClassStudent := m.QryClassStudents{}
-				existingClassStudentQuery := handler.db.Where("student_id = ? AND class_subject_id = ? AND class_student_created_by = ? AND class_student_deleted_at is NULL", classStudent.StudentId, classStudent.ClassSubjectId, creatorId).First(&existingClassStudent)
+				existingClassStudent := m.ClassStudent{}
+				existingClassStudentQuery := handler.db.Where("id = ? AND created_by = ?", classStudent.Id, GetCreator(c)).First(&existingClassStudent)
 
 				if existingClassStudentQuery.RowsAffected == 0 {
-					if (c.PostForm("id") == "") {
-						classStudent.Id = GenerateID()
-					}
 					classStudent.CreatedBy = creatorId
 					saveResult := handler.db.Create(&classStudent)
+
 					if (saveResult.RowsAffected > 0) {
-						qryClassStudent := m.QryClassStudents{}
-						qryClassStudentQuery := handler.db.Where("class_student_id = ?", classStudent.Id).First(&qryClassStudent)
-						if qryClassStudentQuery.RowsAffected > 0 {
-							c.JSON(http.StatusCreated, qryClassStudent)
-						} else {
-							respond(http.StatusBadRequest, qryClassStudentQuery.Error.Error(), c, true)
-						}
+						c.JSON(http.StatusCreated, classStudent)
 					} else {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 					}
 				} else {
-					respond(http.StatusBadRequest, "Record already exist.", c, true)					
+					result := handler.db.Model(&existingClassStudent).Update(&classStudent)
+					if result.RowsAffected > 0 {
+						c.JSON(http.StatusOK, classStudent)
+					} else if result.Error != nil {
+						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					} else {
+						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					}
 				}
 			} else {
 				respond(http.StatusNotFound, "Student record not found.", c, true)			

@@ -2,6 +2,6 @@ package models
 
 type ClassStudent struct {
 	BaseModel
-	ClassSubjectId string `json:"class_subject_id" form:"class_subject_id" binding:"required"`
-	StudentId string `json:"student_id" form:"student_id" binding:"required"`
+	ClassId string `json:"class_id" form:"class_id" sql:"type:varchar(100)"`
+	StudentId string `json:"student_id" form:"student_id" sql:"type:varchar(100)"`
 }
