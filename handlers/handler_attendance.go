@@ -77,13 +77,24 @@ func (handler AttendanceHandler) Create(c *gin.Context) {
 			if handler.db.Where("id = ?", attendance.ScheduleId).First(&existingSchedule).RowsAffected > 0 {
 				existingAttendanceById := m.Attendance{}
 				if handler.db.Where("id = ?", attendance.Id).First(&existingAttendanceById).RowsAffected > 0 {
-					result := handler.db.Model(&existingAttendanceById).Update(&attendance)
-					if result.RowsAffected > 0 {
-						c.JSON(http.StatusOK, attendance)
-					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					if (c.PostForm("for_deletion") == "") {
+						result := handler.db.Model(&existingAttendanceById).Update(&attendance)
+						if result.RowsAffected > 0 {
+							updatedAttendance := m.Attendance{}
+							handler.db.Where("id = ?", attendance.Id).First(&updatedAttendance)
+							c.JSON(http.StatusOK, updatedAttendance)
+						} else if result.Error != nil {
+							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						} else {
+							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						}
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						delete := handler.db.Delete(&existingAttendanceById)
+						if delete.RowsAffected > 0 {
+							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						} else {
+							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						}
 					}
 				} else {
 					attendance.CreatedBy = GetCreator(c)
