@@ -82,13 +82,22 @@ func (handler GradeStatusHandler) Create(c *gin.Context) {
 			if handler.db.Where("id = ?", gradeStatus.StudentId).First(&existingStudent).RowsAffected > 0 {
 				existingGradeStatus := m.GradeStatus{}
 				if handler.db.Where("id = ?", gradeStatus.Id).First(&existingGradeStatus).RowsAffected > 0 {
-					result := handler.db.Model(&existingGradeStatus).Update(&gradeStatus)
-					if result.RowsAffected > 0 {
-						c.JSON(http.StatusOK, gradeStatus)
-					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					if (c.PostForm("for_deletion") == "") {
+						result := handler.db.Model(&existingGradeStatus).Update(&gradeStatus)
+						if result.RowsAffected > 0 {
+							c.JSON(http.StatusOK, gradeStatus)
+						} else if result.Error != nil {
+							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						} else {
+							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						}
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						delete := handler.db.Delete(&existingGradeStatus)
+						if delete.RowsAffected > 0 {
+							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						} else {
+							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						}
 					}
 				} else {
 					gradeStatus.CreatedBy = GetCreator(c)

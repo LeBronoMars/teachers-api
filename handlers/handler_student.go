@@ -65,18 +65,30 @@ func (handler StudentHandler) Create(c *gin.Context) {
 		if handler.db.Where("id = ?", student.Id).First(&existingStudentById).RowsAffected > 0 {
 			existingStudent := m.Student{}
 			existingStudentResult := handler.db.Where("id != ? AND student_no = ? AND created_by = ? AND deleted_at is NULL", student.Id, student.StudentNo, GetCreator(c)).First(&existingStudent)
-			if existingStudentResult.RowsAffected > 0 {
-				respond(http.StatusBadRequest, "Student no. already used.", c, true)
-			} else {
-				result := handler.db.Model(&existingStudentById).Update(&student)
-				if result.RowsAffected > 0 {
-					c.JSON(http.StatusOK, student)
-				} else if result.Error != nil {
-					respond(http.StatusBadRequest, result.Error.Error(), c, true)
+			
+			if (c.PostForm("for_deletion") == "") {
+				if existingStudentResult.RowsAffected > 0 {
+					respond(http.StatusBadRequest, "Student no. already used.", c, true)
 				} else {
-					respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					result := handler.db.Model(&existingStudentById).Update(&student)
+					if result.RowsAffected > 0 {
+						updatedStudent := m.Student{}
+						handler.db.Where("id = ?", student.Id).First(&updatedStudent)
+						c.JSON(http.StatusOK, updatedStudent)
+					} else if result.Error != nil {
+						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					} else {
+						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					}
+				}	
+			} else {
+				delete := handler.db.Delete(&existingStudent)
+				if delete.RowsAffected > 0 {
+					respond(http.StatusOK, "Record successfully deleted.", c, false)
+				} else {
+					respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 				}
-			}	
+			}
 		} else {
 			existingStudent := m.Student{}
 			existingStudentResult := handler.db.Where("student_no = ? AND created_by = ? AND deleted_at is NULL", student.StudentNo, GetCreator(c)).First(&existingStudent)

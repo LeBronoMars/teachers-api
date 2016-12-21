@@ -66,16 +66,25 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 			existingSubject := m.Subject{}
 			existingSubjectQuery := handler.db.Where("id != ? AND subject_code = ? AND created_by = ? AND deleted_at is NULL", newSubject.Id, c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
 			
-			if existingSubjectQuery.RowsAffected > 0 {
-				respond(http.StatusBadRequest, "Subject code already existing.", c, true)
-			} else {
-				result := handler.db.Model(&existingSubjectById).Update(&newSubject)
-				if result.RowsAffected > 0 {
-					c.JSON(http.StatusOK, newSubject)
-				} else if result.Error != nil {
-					respond(http.StatusBadRequest, result.Error.Error(), c, true)
+			if (c.PostForm("for_deletion") == "") {
+				if existingSubjectQuery.RowsAffected > 0 {
+					respond(http.StatusBadRequest, "Subject code already existing.", c, true)
 				} else {
-					respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					result := handler.db.Model(&existingSubjectById).Update(&newSubject)
+					if result.RowsAffected > 0 {
+						c.JSON(http.StatusOK, newSubject)
+					} else if result.Error != nil {
+						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					} else {
+						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					}
+				}
+			} else {
+				delete := handler.db.Delete(&existingSubjectById)
+				if delete.RowsAffected > 0 {
+					respond(http.StatusOK, "Record successfully deleted.", c, false)
+				} else {
+					respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 				}
 			}	
 		} else {
