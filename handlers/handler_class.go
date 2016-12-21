@@ -91,13 +91,24 @@ func (handler ClassHandler) Create(c *gin.Context) {
 				if existingClassQuery.RowsAffected > 0 {
 					respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
 				} else {
-					result := handler.db.Model(&existingClassById).Update(&newClass)
-					if result.RowsAffected > 0 {
-						c.JSON(http.StatusOK, newClass)
-					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					if (c.PostForm("for_deletion") == "") {
+						result := handler.db.Model(&existingClassById).Update(&newClass)
+						if result.RowsAffected > 0 {
+							updatedClass := m.Class{}
+							handler.db.Where("id = ?", newClass.Id).First(&updatedClass)
+							c.JSON(http.StatusOK, updatedClass)
+						} else if result.Error != nil {
+							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						} else {
+							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						}
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						delete := handler.db.Delete(&existingClass)
+						if delete.RowsAffected > 0 {
+							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						} else {
+							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						}
 					}
 				}	
 			} else {
