@@ -87,15 +87,24 @@ func (handler ClassSubject) Create(c *gin.Context) {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 					}
 				} else {
-					result := handler.db.Model(&existingClassSubject).Update(&classSubject)
-					if result.RowsAffected > 0 {
-						qrySubjectClass := m.QryClassSubjects{}
-						handler.db.Where("class_subject_id = ?", classSubject.Id).First(&qrySubjectClass)
-						c.JSON(http.StatusOK, qrySubjectClass)
-					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					if (c.PostForm("for_deletion") == "") {
+						result := handler.db.Model(&existingClassSubject).Update(&classSubject)
+						if result.RowsAffected > 0 {
+							qrySubjectClass := m.QryClassSubjects{}
+							handler.db.Where("class_subject_id = ?", classSubject.Id).First(&qrySubjectClass)
+							c.JSON(http.StatusOK, qrySubjectClass)
+						} else if result.Error != nil {
+							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						} else {
+							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						}
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						delete := handler.db.Delete(&existingClassSubject)
+						if delete.RowsAffected > 0 {
+							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						} else {
+							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						}
 					}
 				}
 			} else {
