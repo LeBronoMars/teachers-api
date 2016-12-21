@@ -19,17 +19,18 @@ func NewClassStudent(db *gorm.DB) *ClassStudent {
 
 //get all class student
 func (handler ClassStudent) Index(c *gin.Context) {
-	qryClassStudent := []m.QryClassStudents{}	
-	
+	//qryClassStudent := []m.QryClassStudents{}	
+	qryClassStudent := []m.ClassStudent{}	
+
 	var query = handler.db
 
 	startParam, startParamExist := c.GetQuery("start")
 	limitParam, limitParamExist := c.GetQuery("limit")
 	orderParam, orderParamExist := c.GetQuery("order")
-	subjectCodeParam, subjectCodeParamExist := c.GetQuery("subject_code")
-	teacherEmpNoParam, teacherEmpNoParamExist := c.GetQuery("teacher_employee_no")
-	gradeLevelParam, gradeLevelParamExist := c.GetQuery("class_grade_level")
-	classSectionParam, classSectionParamExist := c.GetQuery("class_section")
+	//subjectCodeParam, subjectCodeParamExist := c.GetQuery("subject_code")
+	//teacherEmpNoParam, teacherEmpNoParamExist := c.GetQuery("teacher_employee_no")
+	//gradeLevelParam, gradeLevelParamExist := c.GetQuery("class_grade_level")
+	//classSectionParam, classSectionParamExist := c.GetQuery("class_section")
 
 	//start param exist
 	if startParamExist {
@@ -54,23 +55,24 @@ func (handler ClassStudent) Index(c *gin.Context) {
 		query = query.Order(orderParam)
 	} 
 
-	if subjectCodeParamExist {
-		query = query.Where("subject_code = ?", subjectCodeParam)
-	}
+	// if subjectCodeParamExist {
+	// 	query = query.Where("subject_code = ?", subjectCodeParam)
+	// }
 
-	if teacherEmpNoParamExist {
-		query = query.Where("teacher_employee_no = ?", teacherEmpNoParam)
-	}
+	// if teacherEmpNoParamExist {
+	// 	query = query.Where("teacher_employee_no = ?", teacherEmpNoParam)
+	// }
 
-	if gradeLevelParamExist {
-		query = query.Where("class_grade_level = ?", gradeLevelParam)
-	}
+	// if gradeLevelParamExist {
+	// 	query = query.Where("class_grade_level = ?", gradeLevelParam)
+	// }
 
-	if classSectionParamExist {
-		query = query.Where("class_section = ?", classSectionParam)
-	}
+	// if classSectionParamExist {
+	// 	query = query.Where("class_section = ?", classSectionParam)
+	// }
 
-	query.Where("class_student_created_by = ? AND class_student_deleted_at is NULL", GetCreator(c)).Find(&qryClassStudent)
+	//query.Where("class_student_created_by = ? AND class_student_deleted_at is NULL", GetCreator(c)).Find(&qryClassStudent)
+	query.Where("created_by = ? AND deleted_at is NULL", GetCreator(c)).Find(&qryClassStudent)
 	c.JSON(http.StatusOK, qryClassStudent)
 	return
 }
@@ -106,13 +108,24 @@ func (handler ClassStudent) Create(c *gin.Context) {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 					}
 				} else {
-					result := handler.db.Model(&existingClassStudent).Update(&classStudent)
-					if result.RowsAffected > 0 {
-						c.JSON(http.StatusOK, classStudent)
-					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					if (c.PostForm("for_deletion") == "") {
+						result := handler.db.Model(&existingClassStudent).Update(&classStudent)
+						if result.RowsAffected > 0 {
+							updatedClassStudent := m.ClassStudent{}
+							handler.db.Where("id = ?").First(&classStudent.Id)
+							c.JSON(http.StatusOK, updatedClassStudent)
+						} else if result.Error != nil {
+							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						} else {
+							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						}
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						delete := handler.db.Delete(&existingClassStudent)
+						if delete.RowsAffected > 0 {
+							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						} else {
+							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						}
 					}
 				}
 			} else {
