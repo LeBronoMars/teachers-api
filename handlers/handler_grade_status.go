@@ -85,7 +85,9 @@ func (handler GradeStatusHandler) Create(c *gin.Context) {
 					if (c.PostForm("for_deletion") == "") {
 						result := handler.db.Model(&existingGradeStatus).Update(&gradeStatus)
 						if result.RowsAffected > 0 {
-							c.JSON(http.StatusOK, gradeStatus)
+							updatedGradeStatus := m.GradeStatus{}
+							handler.db.Where("id = ?", gradeStatus.Id).First(&updatedGradeStatus)
+							c.JSON(http.StatusOK, updatedGradeStatus)
 						} else if result.Error != nil {
 							respond(http.StatusBadRequest, result.Error.Error(), c, true)
 						} else {

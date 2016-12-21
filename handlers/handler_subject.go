@@ -72,7 +72,9 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 				} else {
 					result := handler.db.Model(&existingSubjectById).Update(&newSubject)
 					if result.RowsAffected > 0 {
-						c.JSON(http.StatusOK, newSubject)
+						updatedSubject := m.Subject{}
+						handler.db.Where("id = ?", newSubject.Id).First(&updatedSubject)
+						c.JSON(http.StatusOK, updatedSubject)
 					} else if result.Error != nil {
 						respond(http.StatusBadRequest, result.Error.Error(), c, true)
 					} else {
