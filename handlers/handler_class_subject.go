@@ -1,4 +1,4 @@
-package handlers
+ package handlers
 
 import (
 	"net/http"
@@ -74,12 +74,9 @@ func (handler ClassSubject) Create(c *gin.Context) {
 
 			if subjectQuery.RowsAffected > 0 {
 				existingClassSubject := m.ClassSubject{}
-				existingClassSubjectQuery := handler.db.Where("created_by = ? AND class_id = ? AND subject_id = ? AND deleted_at is NULL", creatorId, classSubject.ClassId, classSubject.SubjectId).First(&existingClassSubject)
+				existingClassSubjectQuery := handler.db.Where("created_by = ? AND id = ? AND deleted_at is NULL", creatorId, classSubject.Id).First(&existingClassSubject)
 
 				if existingClassSubjectQuery.RowsAffected == 0 {
-					if (c.PostForm("id") == "") {
-						classSubject.Id = GenerateID()
-					}
 					classSubject.CreatedBy = creatorId
 					saveResult := handler.db.Create(&classSubject)
 					if saveResult.RowsAffected > 0 {
@@ -90,7 +87,16 @@ func (handler ClassSubject) Create(c *gin.Context) {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 					}
 				} else {
-					respond(http.StatusBadRequest, "Record already exist.", c, true)	
+					result := handler.db.Model(&existingClassSubject).Update(&classSubject)
+					if result.RowsAffected > 0 {
+						qrySubjectClass := m.QryClassSubjects{}
+						handler.db.Where("class_subject_id = ?", classSubject.Id).First(&qrySubjectClass)
+						c.JSON(http.StatusOK, qrySubjectClass)
+					} else if result.Error != nil {
+						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					} else {
+						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					}
 				}
 			} else {
 				respond(http.StatusBadRequest, "Subject record does not exist.", c, true)
