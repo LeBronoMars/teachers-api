@@ -108,7 +108,7 @@ func (handler ClassStudent) Create(c *gin.Context) {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 					}
 				} else {
-					if (c.PostForm("for_deletion") == "") {
+					if (c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingClassStudent).Update(&classStudent)
 						if result.RowsAffected > 0 {
 							updatedClassStudent := m.ClassStudent{}
@@ -120,11 +120,15 @@ func (handler ClassStudent) Create(c *gin.Context) {
 							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
 						}
 					} else {
-						delete := handler.db.Delete(&existingClassStudent)
-						if delete.RowsAffected > 0 {
-							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						if (c.PostForm("for_deletion") == "true") {
+							delete := handler.db.Delete(&existingClassStudent)
+							if delete.RowsAffected > 0 {
+								respond(http.StatusOK, "Record successfully deleted.", c, false)
+							} else {
+								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+							}
 						} else {
-							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+							respond(http.StatusBadRequest, "Invalid action.", c, true)
 						}
 					}
 				}

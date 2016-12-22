@@ -77,7 +77,7 @@ func (handler AttendanceHandler) Create(c *gin.Context) {
 			if handler.db.Where("id = ?", attendance.ScheduleId).First(&existingSchedule).RowsAffected > 0 {
 				existingAttendanceById := m.Attendance{}
 				if handler.db.Where("id = ?", attendance.Id).First(&existingAttendanceById).RowsAffected > 0 {
-					if (c.PostForm("for_deletion") == "") {
+					if (c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingAttendanceById).Update(&attendance)
 						if result.RowsAffected > 0 {
 							updatedAttendance := m.Attendance{}
@@ -89,11 +89,15 @@ func (handler AttendanceHandler) Create(c *gin.Context) {
 							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
 						}
 					} else {
-						delete := handler.db.Delete(&existingAttendanceById)
-						if delete.RowsAffected > 0 {
-							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						if (c.PostForm("for_deletion") == "true") {
+							delete := handler.db.Delete(&existingAttendanceById)
+							if delete.RowsAffected > 0 {
+								respond(http.StatusOK, "Record successfully deleted.", c, false)
+							} else {
+								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+							}
 						} else {
-							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+							respond(http.StatusBadRequest, "Invalid action.", c, true)
 						}
 					}
 				} else {

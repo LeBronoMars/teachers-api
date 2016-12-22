@@ -75,7 +75,7 @@ func (handler ClassDiaryHandler) Create(c *gin.Context) {
 			//check if class diary exists
 			existingclassDiaryById := m.ClassDiary{}
 			if handler.db.Where("id = ?", classDiary.Id).First(&existingclassDiaryById).RowsAffected > 0 {
-				if (c.PostForm("for_deletion") == "") {
+				if (c.PostForm("for_deletion") == "false") {
 					result := handler.db.Model(&existingclassDiaryById).Update(&classDiary)
 					if result.RowsAffected > 0 {
 						updatedClassDiary := m.ClassDiary{}
@@ -87,11 +87,15 @@ func (handler ClassDiaryHandler) Create(c *gin.Context) {
 						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
 					}
 				} else {
-					delete := handler.db.Delete(&existingclassDiaryById)
-					if delete.RowsAffected > 0 {
-						respond(http.StatusOK, "Record successfully deleted.", c, false)
+					if (c.PostForm("for_deletion") == "true") {
+						delete := handler.db.Delete(&existingclassDiaryById)
+						if delete.RowsAffected > 0 {
+							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						} else {
+							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						}
 					} else {
-						respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						respond(http.StatusBadRequest, "Invalid action.", c, true)
 					}
 				}
 			} else {

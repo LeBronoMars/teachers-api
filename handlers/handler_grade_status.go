@@ -82,7 +82,7 @@ func (handler GradeStatusHandler) Create(c *gin.Context) {
 			if handler.db.Where("id = ?", gradeStatus.StudentId).First(&existingStudent).RowsAffected > 0 {
 				existingGradeStatus := m.GradeStatus{}
 				if handler.db.Where("id = ?", gradeStatus.Id).First(&existingGradeStatus).RowsAffected > 0 {
-					if (c.PostForm("for_deletion") == "") {
+					if (c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingGradeStatus).Update(&gradeStatus)
 						if result.RowsAffected > 0 {
 							updatedGradeStatus := m.GradeStatus{}
@@ -94,11 +94,15 @@ func (handler GradeStatusHandler) Create(c *gin.Context) {
 							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
 						}
 					} else {
-						delete := handler.db.Delete(&existingGradeStatus)
-						if delete.RowsAffected > 0 {
-							respond(http.StatusOK, "Record successfully deleted.", c, false)
+						if (c.PostForm("for_deletion") == "true") {
+							delete := handler.db.Delete(&existingGradeStatus)
+							if delete.RowsAffected > 0 {
+								respond(http.StatusOK, "Record successfully deleted.", c, false)
+							} else {
+								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+							}
 						} else {
-							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+							respond(http.StatusBadRequest, "Invalid action.", c, true)
 						}
 					}
 				} else {
