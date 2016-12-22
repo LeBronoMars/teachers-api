@@ -91,7 +91,7 @@ func (handler ClassHandler) Create(c *gin.Context) {
 				if existingClassQuery.RowsAffected > 0 {
 					respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
 				} else {
-					if (c.PostForm("for_deletion") == "false") {
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingClassById).Update(&newClass)
 						if result.RowsAffected > 0 {
 							updatedClass := m.Class{}

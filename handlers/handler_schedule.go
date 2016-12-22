@@ -74,7 +74,7 @@ func (handler ScheduleHandler) Create(c *gin.Context) {
 		if existingClassSubjectQuery.RowsAffected > 0 {
 			existingscheduleById := m.Schedule{}
 			if handler.db.Where("id = ?", schedule.Id).First(&existingscheduleById).RowsAffected > 0 {
-				if (c.PostForm("for_deletion") == "false") {
+				if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 					result := handler.db.Model(&existingscheduleById).Update(&schedule)
 					updatedSchedule := m.Schedule{}
 					handler.db.Where("id = ?", schedule.Id).First(&updatedSchedule)

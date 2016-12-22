@@ -82,7 +82,7 @@ func (handler GradeStatusHandler) Create(c *gin.Context) {
 			if handler.db.Where("id = ?", gradeStatus.StudentId).First(&existingStudent).RowsAffected > 0 {
 				existingGradeStatus := m.GradeStatus{}
 				if handler.db.Where("id = ?", gradeStatus.Id).First(&existingGradeStatus).RowsAffected > 0 {
-					if (c.PostForm("for_deletion") == "false") {
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingGradeStatus).Update(&gradeStatus)
 						if result.RowsAffected > 0 {
 							updatedGradeStatus := m.GradeStatus{}

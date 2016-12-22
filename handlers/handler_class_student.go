@@ -108,7 +108,7 @@ func (handler ClassStudent) Create(c *gin.Context) {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 					}
 				} else {
-					if (c.PostForm("for_deletion") == "false") {
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {	
 						result := handler.db.Model(&existingClassStudent).Update(&classStudent)
 						if result.RowsAffected > 0 {
 							updatedClassStudent := m.ClassStudent{}

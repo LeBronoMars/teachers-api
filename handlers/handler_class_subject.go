@@ -87,7 +87,7 @@ func (handler ClassSubject) Create(c *gin.Context) {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
 					}
 				} else {
-					if (c.PostForm("for_deletion") == "false") {
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingClassSubject).Update(&classSubject)
 						if result.RowsAffected > 0 {
 							qrySubjectClass := m.QryClassSubjects{}

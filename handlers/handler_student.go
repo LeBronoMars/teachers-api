@@ -66,7 +66,7 @@ func (handler StudentHandler) Create(c *gin.Context) {
 			existingStudent := m.Student{}
 			existingStudentResult := handler.db.Where("id != ? AND student_no = ? AND created_by = ? AND deleted_at is NULL", student.Id, student.StudentNo, GetCreator(c)).First(&existingStudent)
 			
-			if (c.PostForm("for_deletion") == "false") {
+			if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 				if existingStudentResult.RowsAffected > 0 {
 					respond(http.StatusBadRequest, "Student no. already used.", c, true)
 				} else {

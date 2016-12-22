@@ -77,7 +77,7 @@ func (handler AttendanceHandler) Create(c *gin.Context) {
 			if handler.db.Where("id = ?", attendance.ScheduleId).First(&existingSchedule).RowsAffected > 0 {
 				existingAttendanceById := m.Attendance{}
 				if handler.db.Where("id = ?", attendance.Id).First(&existingAttendanceById).RowsAffected > 0 {
-					if (c.PostForm("for_deletion") == "false") {
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingAttendanceById).Update(&attendance)
 						if result.RowsAffected > 0 {
 							updatedAttendance := m.Attendance{}

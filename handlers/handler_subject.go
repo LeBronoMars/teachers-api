@@ -66,7 +66,7 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 			existingSubject := m.Subject{}
 			existingSubjectQuery := handler.db.Where("id != ? AND subject_code = ? AND created_by = ? AND deleted_at is NULL", newSubject.Id, c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
 			
-			if (c.PostForm("for_deletion") == "false") {
+			if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 				if existingSubjectQuery.RowsAffected > 0 {
 					respond(http.StatusBadRequest, "Subject code already existing.", c, true)
 				} else {

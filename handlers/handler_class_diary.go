@@ -75,7 +75,7 @@ func (handler ClassDiaryHandler) Create(c *gin.Context) {
 			//check if class diary exists
 			existingclassDiaryById := m.ClassDiary{}
 			if handler.db.Where("id = ?", classDiary.Id).First(&existingclassDiaryById).RowsAffected > 0 {
-				if (c.PostForm("for_deletion") == "false") {
+				if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 					result := handler.db.Model(&existingclassDiaryById).Update(&classDiary)
 					if result.RowsAffected > 0 {
 						updatedClassDiary := m.ClassDiary{}
