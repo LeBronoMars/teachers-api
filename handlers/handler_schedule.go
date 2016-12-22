@@ -74,13 +74,24 @@ func (handler ScheduleHandler) Create(c *gin.Context) {
 		if existingClassSubjectQuery.RowsAffected > 0 {
 			existingscheduleById := m.Schedule{}
 			if handler.db.Where("id = ?", schedule.Id).First(&existingscheduleById).RowsAffected > 0 {
-				result := handler.db.Model(&existingscheduleById).Update(&schedule)
-				if result.RowsAffected > 0 {
-					c.JSON(http.StatusOK, schedule)
-				} else if result.Error != nil {
-					respond(http.StatusBadRequest, result.Error.Error(), c, true)
+				if (c.PostForm("for_deletion") == "") {
+					result := handler.db.Model(&existingscheduleById).Update(&schedule)
+					updatedSchedule := m.Schedule{}
+					handler.db.Where("id = ?", schedule.Id).First(&updatedSchedule)
+					if result.RowsAffected > 0 {
+						c.JSON(http.StatusOK, updatedSchedule)
+					} else if result.Error != nil {
+						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+					} else {
+						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					}
 				} else {
-					respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+					delete := handler.db.Delete(&existingscheduleById)
+					if delete.RowsAffected > 0 {
+						respond(http.StatusOK, "Record successfully deleted.", c, false)
+					} else {
+						respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+					}
 				}
 			} else {
 				schedule.CreatedBy = GetCreator(c)
