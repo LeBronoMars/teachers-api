@@ -19,7 +19,7 @@ func NewClassSubject(db *gorm.DB) *ClassSubject {
 
 //get all class subject
 func (handler ClassSubject) Index(c *gin.Context) {
-	qrySubjectClass := []m.QryClassSubjects{}		
+	qrySubjectClass := []m.ClassSubject{}		
 	
 	var query = handler.db
 
@@ -50,7 +50,7 @@ func (handler ClassSubject) Index(c *gin.Context) {
 		query = query.Order(orderParam)
 	} 
 
-	query.Where("class_subject_created_by = ? AND class_subject_deleted_at is NULL", GetCreator(c)).Find(&qrySubjectClass)
+	query.Where("created_by = ? AND deleted_at is NULL", GetCreator(c)).Find(&qrySubjectClass)
 	//query.Where("class_subject_created_by = ?", GetCreator(c)).Find(&qrySubjectClass)
 	c.JSON(http.StatusOK, qrySubjectClass)
 	return
@@ -80,8 +80,8 @@ func (handler ClassSubject) Create(c *gin.Context) {
 					classSubject.CreatedBy = creatorId
 					saveResult := handler.db.Create(&classSubject)
 					if saveResult.RowsAffected > 0 {
-						qrySubjectClass := m.QryClassSubjects{}
-						handler.db.Where("class_subject_id = ?", classSubject.Id).First(&qrySubjectClass)
+						qrySubjectClass := m.ClassSubject{}
+						handler.db.Where("id = ?", classSubject.Id).First(&qrySubjectClass)
 						c.JSON(http.StatusCreated, qrySubjectClass)
 					} else {
 						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
@@ -90,8 +90,8 @@ func (handler ClassSubject) Create(c *gin.Context) {
 					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 						result := handler.db.Model(&existingClassSubject).Update(&classSubject)
 						if result.RowsAffected > 0 {
-							qrySubjectClass := m.QryClassSubjects{}
-							handler.db.Where("class_subject_id = ?", classSubject.Id).First(&qrySubjectClass)
+							qrySubjectClass := m.ClassSubject{}
+							handler.db.Where("id = ?", classSubject.Id).First(&qrySubjectClass)
 							c.JSON(http.StatusOK, qrySubjectClass)
 						} else if result.Error != nil {
 							respond(http.StatusBadRequest, result.Error.Error(), c, true)
@@ -151,8 +151,8 @@ func (handler ClassSubject) Update(c *gin.Context) {
 				
 				updateResult := handler.db.Save(&existingClassSubject)
 				if updateResult.RowsAffected > 0 {
-					qrySubjectClass := m.QryClassSubjects{}
-					handler.db.Where("class_subject_id = ?", classSubjectId).First(&qrySubjectClass)
+					qrySubjectClass := m.ClassSubject{}
+					handler.db.Where("id = ?", classSubjectId).First(&qrySubjectClass)
 					c.JSON(http.StatusOK, qrySubjectClass)
 				} else {
 					respond(http.StatusBadRequest, updateResult.Error.Error(), c, true)
@@ -171,8 +171,8 @@ func (handler ClassSubject) Update(c *gin.Context) {
 
 func (handler ClassSubject) Show(c *gin.Context) {
 	classSubjectId := c.Param("class_subject_id")
-	qrySubjectClass := m.QryClassSubjects{}
-	qrySubjectClassQuery := handler.db.Where("class_subject_id = ?", classSubjectId).First(&qrySubjectClass)
+	qrySubjectClass := m.ClassSubject{}
+	qrySubjectClassQuery := handler.db.Where("id = ?", classSubjectId).First(&qrySubjectClass)
 
 	if qrySubjectClassQuery.RowsAffected > 0 {
 		c.JSON(http.StatusOK, qrySubjectClass)
