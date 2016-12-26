@@ -175,7 +175,7 @@ func InitDB() *gorm.DB {
 																&m.Attendance{},
 																&m.GradeStatus{},
 																&m.ClassDiary{})
-	return _db
+	return &_db
 }
 
 func InitPusher() *pusher.Client {

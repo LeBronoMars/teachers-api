@@ -62,7 +62,7 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 
 	if err == nil {
 		existingSubjectById := m.Subject{}
-		if handler.db.Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
+		if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
 			existingSubject := m.Subject{}
 			existingSubjectQuery := handler.db.Where("id != ? AND subject_code = ? AND created_by = ? AND deleted_at is NULL", newSubject.Id, c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
 			
@@ -87,29 +87,37 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 					if delete.RowsAffected > 0 {
 						respond(http.StatusOK, "Record successfully deleted.", c, false)
 					} else {
-						respond(http.StatusBadRequest, delete.Error.Error(), c, true)
+						c.JSON(http.StatusOK, newSubject)
 					}
 				} else {
 					respond(http.StatusBadRequest, "Invalid action.", c, true)
 				}
 			}	
 		} else {
-			existingSubject := m.Subject{}
-			existingSubjectQuery := handler.db.Where("subject_code = ? AND created_by = ? AND deleted_at is NULL", c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
+			if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+				existingSubject := m.Subject{}
+				existingSubjectQuery := handler.db.Where("subject_code = ? AND created_by = ? AND deleted_at is NULL", c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
 
-			if existingSubjectQuery.RowsAffected == 0 {
-				if (c.PostForm("description") != "") {
-					newSubject.Description = c.PostForm("description")				
-				}
-				newSubject.CreatedBy = GetCreator(c)
-				saveResult := handler.db.Create(&newSubject)
-				if saveResult.RowsAffected > 0 {
-					c.JSON(http.StatusCreated, newSubject)
+				if existingSubjectQuery.RowsAffected == 0 {
+					if (c.PostForm("description") != "") {
+						newSubject.Description = c.PostForm("description")				
+					}
+					newSubject.CreatedBy = GetCreator(c)
+					saveResult := handler.db.Create(&newSubject)
+					if saveResult.RowsAffected > 0 {
+						c.JSON(http.StatusCreated, newSubject)
+					} else {
+						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+					}
 				} else {
-					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+					respond(http.StatusBadRequest, "Subject code already existing.", c, true)
 				}
 			} else {
-				respond(http.StatusBadRequest, "Subject code already existing.", c, true)
+				if (c.PostForm("for_deletion") == "true") {
+					c.JSON(http.StatusOK, newSubject)
+				} else {
+					respond(http.StatusBadRequest, "Invalid action.", c, true)
+				}
 			}
 		}
 	} else {
