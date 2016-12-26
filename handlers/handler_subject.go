@@ -85,7 +85,9 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 				if (c.PostForm("for_deletion") == "true") {
 					delete := handler.db.Delete(&existingSubjectById)
 					if delete.RowsAffected > 0 {
-						respond(http.StatusOK, "Record successfully deleted.", c, false)
+						if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
+							c.JSON(http.StatusOK, existingSubjectById)	
+						}
 					} else if delete.Error != nil {
 						respond(http.StatusOK, delete.Error.Error(), c, true)
 					} else {
@@ -119,7 +121,8 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 					if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
 						c.JSON(http.StatusOK, existingSubjectById)		
 					} else {
-						c.JSON(http.StatusOK, newSubject)
+						newSubject.DeletedAt = GetDeletedAt(c)
+						c.JSON(http.StatusOK, newSubject)	
 					}
 				} else {
 					respond(http.StatusBadRequest, "Invalid action.", c, true)

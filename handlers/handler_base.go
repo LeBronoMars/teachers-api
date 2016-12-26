@@ -178,3 +178,9 @@ func GetCreator(c *gin.Context) string {
 		return ""
 	}
 }
+
+func GetDeletedAt(c *gin.Context) *time.Time {
+	layout := "2006-01-02T15:04:05Z"
+	t, _ := time.Parse(layout, c.PostForm("deleted_at"))
+	return &t
+}
