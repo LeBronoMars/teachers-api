@@ -62,9 +62,9 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 
 	if err == nil {
 		existingSubjectById := m.Subject{}
-		if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
+		if handler.db.Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
 			existingSubject := m.Subject{}
-			existingSubjectQuery := handler.db.Where("id != ? AND subject_code = ? AND created_by = ? AND deleted_at is NULL", newSubject.Id, c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
+			existingSubjectQuery := handler.db.Where("id != ? AND subject_code = ? AND created_by = ?", newSubject.Id, c.PostForm("subject_code"), GetCreator(c)).First(&existingSubject)
 			
 			if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 				if existingSubjectQuery.RowsAffected > 0 {
@@ -76,9 +76,9 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 						handler.db.Where("id = ?", newSubject.Id).First(&updatedSubject)
 						c.JSON(http.StatusOK, updatedSubject)
 					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						respond(http.StatusOK, result.Error.Error(), c, true)
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						respond(http.StatusOK, "There are no changes detected.", c , true)
 					}
 				}
 			} else {
@@ -86,8 +86,10 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 					delete := handler.db.Delete(&existingSubjectById)
 					if delete.RowsAffected > 0 {
 						respond(http.StatusOK, "Record successfully deleted.", c, false)
+					} else if delete.Error != nil {
+						respond(http.StatusOK, delete.Error.Error(), c, true)
 					} else {
-						c.JSON(http.StatusOK, newSubject)
+						c.JSON(http.StatusOK, existingSubjectById)
 					}
 				} else {
 					respond(http.StatusBadRequest, "Invalid action.", c, true)
@@ -114,7 +116,11 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 				}
 			} else {
 				if (c.PostForm("for_deletion") == "true") {
-					c.JSON(http.StatusOK, newSubject)
+					if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
+						c.JSON(http.StatusOK, existingSubjectById)		
+					} else {
+						c.JSON(http.StatusOK, newSubject)
+					}
 				} else {
 					respond(http.StatusBadRequest, "Invalid action.", c, true)
 				}
