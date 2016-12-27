@@ -99,13 +99,30 @@ func (handler ClassStudent) Create(c *gin.Context) {
 				existingClassStudentQuery := handler.db.Where("id = ? AND created_by = ?", classStudent.Id, GetCreator(c)).First(&existingClassStudent)
 
 				if existingClassStudentQuery.RowsAffected == 0 {
-					classStudent.CreatedBy = creatorId
-					saveResult := handler.db.Create(&classStudent)
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+						classStudent.CreatedBy = creatorId
+						saveResult := handler.db.Create(&classStudent)
 
-					if (saveResult.RowsAffected > 0) {
-						c.JSON(http.StatusCreated, classStudent)
+						if (saveResult.RowsAffected > 0) {
+							c.JSON(http.StatusCreated, classStudent)
+						} else {
+							deletedClassStudent := m.ClassStudent{}
+							if handler.db.Unscoped().Where("id = ?", classStudent.Id).First(&deletedClassStudent).RowsAffected > 0 {
+								c.JSON(http.StatusOK, deletedClassStudent)
+							}
+						}
 					} else {
-						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+						if (c.PostForm("for_deletion") == "true") {
+							existingClassStudent := m.ClassStudent{}
+							if handler.db.Unscoped().Where("id = ?", classStudent.Id).First(&existingClassStudent).RowsAffected > 0 {
+								c.JSON(http.StatusOK, existingClassStudent)		
+							} else {
+								classStudent.DeletedAt = GetDeletedAt(c)
+								c.JSON(http.StatusOK, classStudent)	
+							}
+						} else {
+							respond(http.StatusBadRequest, "Invalid action.", c, true)
+						}
 					}
 				} else {
 					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {	
@@ -115,15 +132,18 @@ func (handler ClassStudent) Create(c *gin.Context) {
 							handler.db.Where("id = ?").First(&classStudent.Id)
 							c.JSON(http.StatusOK, updatedClassStudent)
 						} else if result.Error != nil {
-							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+							respond(http.StatusOK, result.Error.Error(), c, true)
 						} else {
-							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+							respond(http.StatusOK, "There are no changes detected.", c , true)
 						}
 					} else {
 						if (c.PostForm("for_deletion") == "true") {
 							delete := handler.db.Delete(&existingClassStudent)
 							if delete.RowsAffected > 0 {
-								respond(http.StatusOK, "Record successfully deleted.", c, false)
+								deletedClassStudent := m.ClassStudent{}
+								if handler.db.Unscoped().Where("id = ?", classStudent.Id).First(&deletedClassStudent).RowsAffected > 0 {
+									c.JSON(http.StatusOK, deletedClassStudent)
+								}
 							} else {
 								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 							}
