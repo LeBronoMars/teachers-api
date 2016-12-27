@@ -77,14 +77,31 @@ func (handler ClassSubject) Create(c *gin.Context) {
 				existingClassSubjectQuery := handler.db.Where("created_by = ? AND id = ? AND deleted_at is NULL", creatorId, classSubject.Id).First(&existingClassSubject)
 
 				if existingClassSubjectQuery.RowsAffected == 0 {
-					classSubject.CreatedBy = creatorId
-					saveResult := handler.db.Create(&classSubject)
-					if saveResult.RowsAffected > 0 {
-						qrySubjectClass := m.ClassSubject{}
-						handler.db.Where("id = ?", classSubject.Id).First(&qrySubjectClass)
-						c.JSON(http.StatusCreated, qrySubjectClass)
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+						classSubject.CreatedBy = creatorId
+						saveResult := handler.db.Create(&classSubject)
+						if saveResult.RowsAffected > 0 {
+							qrySubjectClass := m.ClassSubject{}
+							handler.db.Where("id = ?", classSubject.Id).First(&qrySubjectClass)
+							c.JSON(http.StatusCreated, qrySubjectClass)
+						} else {
+							deletedClassSubject := m.ClassSubject{}
+							if handler.db.Unscoped().Where("id = ?", classSubject.Id).First(&deletedClassSubject).RowsAffected > 0 {
+								c.JSON(http.StatusOK, deletedClassSubject)
+							}
+						}
 					} else {
-						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+						if (c.PostForm("for_deletion") == "true") {
+							existingClassSubject := m.ClassSubject{}
+							if handler.db.Unscoped().Where("id = ?", classSubject.Id).First(&existingClassSubject).RowsAffected > 0 {
+								c.JSON(http.StatusOK, existingClassSubject)		
+							} else {
+								classSubject.DeletedAt = GetDeletedAt(c)
+								c.JSON(http.StatusOK, classSubject)	
+							}
+						} else {
+							respond(http.StatusBadRequest, "Invalid action.", c, true)
+						}
 					}
 				} else {
 					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
@@ -94,15 +111,18 @@ func (handler ClassSubject) Create(c *gin.Context) {
 							handler.db.Where("id = ?", classSubject.Id).First(&qrySubjectClass)
 							c.JSON(http.StatusOK, qrySubjectClass)
 						} else if result.Error != nil {
-							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+							respond(http.StatusOK, result.Error.Error(), c, true)
 						} else {
-							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+							respond(http.StatusOK, "There are no changes detected.", c , true)
 						}
 					} else {
 						if (c.PostForm("for_deletion") == "true") {
 							delete := handler.db.Delete(&existingClassSubject)
 							if delete.RowsAffected > 0 {
-								respond(http.StatusOK, "Record successfully deleted.", c, false)
+								deletedClassSubject := m.ClassSubject{}
+								if handler.db.Unscoped().Where("id = ?", classSubject.Id).First(&deletedClassSubject).RowsAffected > 0 {
+									c.JSON(http.StatusOK, deletedClassSubject)
+								}
 							} else {
 								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 							}
