@@ -82,15 +82,18 @@ func (handler ClassDiaryHandler) Create(c *gin.Context) {
 						handler.db.Where("id = ?", classDiary.Id).First(&updatedClassDiary)
 						c.JSON(http.StatusOK, updatedClassDiary)
 					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						respond(http.StatusOK, result.Error.Error(), c, true)
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						respond(http.StatusOK, "There are no changes detected.", c , true)
 					}
 				} else {
 					if (c.PostForm("for_deletion") == "true") {
 						delete := handler.db.Delete(&existingclassDiaryById)
 						if delete.RowsAffected > 0 {
-							respond(http.StatusOK, "Record successfully deleted.", c, false)
+							deletedClassDiary := m.ClassDiary{}
+							if handler.db.Unscoped().Where("id = ?", classDiary.Id).First(&deletedClassDiary).RowsAffected > 0 {
+								c.JSON(http.StatusOK, deletedClassDiary)
+							}
 						} else {
 							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 						}
@@ -99,12 +102,29 @@ func (handler ClassDiaryHandler) Create(c *gin.Context) {
 					}
 				}
 			} else {
-				classDiary.CreatedBy = GetCreator(c)
-				saveResult := handler.db.Create(&classDiary)
-				if saveResult.RowsAffected > 0 {
-					c.JSON(http.StatusCreated, classDiary)
+				if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+					classDiary.CreatedBy = GetCreator(c)
+					saveResult := handler.db.Create(&classDiary)
+					if saveResult.RowsAffected > 0 {
+						c.JSON(http.StatusCreated, classDiary)
+					} else {
+						deletedClassDiary := m.ClassDiary{}
+						if handler.db.Unscoped().Where("id = ?", classDiary.Id).First(&deletedClassDiary).RowsAffected > 0 {
+							c.JSON(http.StatusOK, deletedClassDiary)
+						}
+					}
 				} else {
-					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+					if (c.PostForm("for_deletion") == "true") {
+						existingClassDiary := m.ClassDiary{}
+						if handler.db.Unscoped().Where("id = ?", classDiary.Id).First(&existingClassDiary).RowsAffected > 0 {
+							c.JSON(http.StatusOK, existingClassDiary)		
+						} else {
+							classDiary.DeletedAt = GetDeletedAt(c)
+							c.JSON(http.StatusOK, classDiary)	
+						}
+					} else {
+						respond(http.StatusBadRequest, "Invalid action.", c, true)
+					}
 				}
 			}
 		} else {
