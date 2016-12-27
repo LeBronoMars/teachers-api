@@ -98,15 +98,18 @@ func (handler ClassHandler) Create(c *gin.Context) {
 							handler.db.Where("id = ?", newClass.Id).First(&updatedClass)
 							c.JSON(http.StatusOK, updatedClass)
 						} else if result.Error != nil {
-							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+							respond(http.StatusOK, result.Error.Error(), c, true)
 						} else {
-							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+							respond(http.StatusOK, "There are no changes detected.", c , true)
 						}
 					} else {
 						if (c.PostForm("for_deletion") == "true") {
 							delete := handler.db.Delete(&existingClass)
 							if delete.RowsAffected > 0 {
-								respond(http.StatusOK, "Record successfully deleted.", c, false)
+								deletedClass := m.Class{}
+								if handler.db.Unscoped().Where("id = ?", newClass.Id).First(&deletedClass).RowsAffected > 0 {
+									c.JSON(http.StatusOK, deletedClass)
+								}
 							} else {
 								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 							}
@@ -116,22 +119,39 @@ func (handler ClassHandler) Create(c *gin.Context) {
 					}
 				}	
 			} else {
-				//check if class is already existing
-				existingClass := m.Class{}
-				existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
+				if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+					//check if class is already existing
+					existingClass := m.Class{}
+					existingClassQuery := handler.db.Where("section = ? AND grade_level = ? AND created_by = ? AND deleted_at is NULL", newClass.Section, newClass.GradeLevel, GetCreator(c)).First(&existingClass)
 
-				if existingClassQuery.RowsAffected == 0 {
-					newClass.CreatedBy = GetCreator(c)
-					saveResult := handler.db.Create(&newClass)
-					if (saveResult.RowsAffected > 0) {
-						qryNewClass := m.QryClassSchools{}
-						handler.db.Where("class_id = ? AND deleted_at is NULL", newClass.Id).First(&qryNewClass)
-						c.JSON(http.StatusCreated, qryNewClass)
+					if existingClassQuery.RowsAffected == 0 {
+						newClass.CreatedBy = GetCreator(c)
+						saveResult := handler.db.Create(&newClass)
+						if (saveResult.RowsAffected > 0) {
+							qryNewClass := m.Class{}
+							handler.db.Where("id = ? AND deleted_at is NULL", newClass.Id).First(&qryNewClass)
+							c.JSON(http.StatusCreated, qryNewClass)
+						} else {
+							deletedClass := m.Class{}
+							if handler.db.Unscoped().Where("id = ?", newClass.Id).First(&deletedClass).RowsAffected > 0 {
+								c.JSON(http.StatusOK, deletedClass)
+							}
+						}
 					} else {
-						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+						respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
 					}
 				} else {
-					respond(http.StatusBadRequest, fmt.Sprintf("Class with section of %s in Grade Level %v already exist.", newClass.Section, newClass.GradeLevel), c, true)
+					if (c.PostForm("for_deletion") == "true") {
+						existingClass := m.Class{}
+						if handler.db.Unscoped().Where("id = ?", newClass.Id).First(&existingClass).RowsAffected > 0 {
+							c.JSON(http.StatusOK, existingClass)		
+						} else {
+							newClass.DeletedAt = GetDeletedAt(c)
+							c.JSON(http.StatusOK, newClass)	
+						}
+					} else {
+						respond(http.StatusBadRequest, "Invalid action.", c, true)
+					}
 				}
 			}
 		} else {
