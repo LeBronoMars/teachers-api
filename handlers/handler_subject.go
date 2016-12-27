@@ -85,8 +85,9 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 				if (c.PostForm("for_deletion") == "true") {
 					delete := handler.db.Delete(&existingSubjectById)
 					if delete.RowsAffected > 0 {
-						if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&existingSubjectById).RowsAffected > 0 {
-							c.JSON(http.StatusOK, existingSubjectById)	
+						deletedSubject := m.Subject{}
+						if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&deletedSubject).RowsAffected > 0 {
+							c.JSON(http.StatusOK, deletedSubject)
 						}
 					} else if delete.Error != nil {
 						respond(http.StatusOK, delete.Error.Error(), c, true)
@@ -111,7 +112,10 @@ func (handler SubjectHandler) Create(c *gin.Context) {
 					if saveResult.RowsAffected > 0 {
 						c.JSON(http.StatusCreated, newSubject)
 					} else {
-						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+						deletedSubject := m.Subject{}
+						if handler.db.Unscoped().Where("id = ?", newSubject.Id).First(&deletedSubject).RowsAffected > 0 {
+							c.JSON(http.StatusOK, deletedSubject)
+						}
 					}
 				} else {
 					respond(http.StatusBadRequest, "Subject code already existing.", c, true)
