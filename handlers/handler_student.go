@@ -64,7 +64,7 @@ func (handler StudentHandler) Create(c *gin.Context) {
 		existingStudentById := m.Student{}
 		if handler.db.Where("id = ?", student.Id).First(&existingStudentById).RowsAffected > 0 {
 			existingStudent := m.Student{}
-			existingStudentResult := handler.db.Where("id != ? AND student_no = ? AND created_by = ? AND deleted_at is NULL", student.Id, student.StudentNo, GetCreator(c)).First(&existingStudent)
+			existingStudentResult := handler.db.Where("id != ? AND student_no = ? AND created_by = ?", student.Id, student.StudentNo, GetCreator(c)).First(&existingStudent)
 			
 			if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 				if existingStudentResult.RowsAffected > 0 {
@@ -85,7 +85,10 @@ func (handler StudentHandler) Create(c *gin.Context) {
 				if (c.PostForm("for_deletion") == "true") {
 					delete := handler.db.Delete(&existingStudent)
 					if delete.RowsAffected > 0 {
-						respond(http.StatusOK, "Record successfully deleted.", c, false)
+						deletedStudent := m.Student{}
+						if handler.db.Unscoped().Where("id = ?", student.Id).First(&deletedStudent).RowsAffected > 0 {
+							c.JSON(http.StatusOK, deletedStudent)
+						}
 					} else {
 						respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 					}
@@ -95,16 +98,32 @@ func (handler StudentHandler) Create(c *gin.Context) {
 			}
 		} else {
 			existingStudent := m.Student{}
-			existingStudentResult := handler.db.Where("student_no = ? AND created_by = ? AND deleted_at is NULL", student.StudentNo, GetCreator(c)).First(&existingStudent)
-			if existingStudentResult.RowsAffected > 0 {
-				respond(http.StatusBadRequest, "Student no. already used.", c, true)
-			} else {
-				student.CreatedBy = GetCreator(c)
-				saveResult := handler.db.Create(&student)
-				if saveResult.RowsAffected > 0 {
-					c.JSON(http.StatusCreated, student)
+			if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+				existingStudentResult := handler.db.Where("student_no = ? AND created_by = ? AND deleted_at is NULL", student.StudentNo, GetCreator(c)).First(&existingStudent)
+				if existingStudentResult.RowsAffected > 0 {
+					respond(http.StatusBadRequest, "Student no. already used.", c, true)
 				} else {
-					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+					student.CreatedBy = GetCreator(c)
+					saveResult := handler.db.Create(&student)
+					if saveResult.RowsAffected > 0 {
+						c.JSON(http.StatusCreated, student)
+					} else {
+						deletedStudent := m.Student{}
+						if handler.db.Unscoped().Where("id = ?", student.Id).First(&deletedStudent).RowsAffected > 0 {
+							c.JSON(http.StatusOK, deletedStudent)
+						}
+					}
+				}
+			} else {
+				if (c.PostForm("for_deletion") == "true") {
+					if handler.db.Unscoped().Where("id = ?", student.Id).First(&existingStudent).RowsAffected > 0 {
+						c.JSON(http.StatusOK, existingStudent)		
+					} else {
+						student.DeletedAt = GetDeletedAt(c)
+						c.JSON(http.StatusOK, student)	
+					}
+				} else {
+					respond(http.StatusBadRequest, "Invalid action.", c, true)
 				}
 			}
 		}
