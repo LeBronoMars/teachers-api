@@ -84,15 +84,18 @@ func (handler AttendanceHandler) Create(c *gin.Context) {
 							handler.db.Where("id = ?", attendance.Id).First(&updatedAttendance)
 							c.JSON(http.StatusOK, updatedAttendance)
 						} else if result.Error != nil {
-							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+							respond(http.StatusOK, result.Error.Error(), c, true)
 						} else {
-							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+							respond(http.StatusOK, "There are no changes detected.", c , true)
 						}
 					} else {
 						if (c.PostForm("for_deletion") == "true") {
 							delete := handler.db.Delete(&existingAttendanceById)
 							if delete.RowsAffected > 0 {
-								respond(http.StatusOK, "Record successfully deleted.", c, false)
+								deletedAttendance := m.Attendance{}
+								if handler.db.Unscoped().Where("id = ?", attendance.Id).First(&deletedAttendance).RowsAffected > 0 {
+									c.JSON(http.StatusOK, deletedAttendance)
+								}
 							} else {
 								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 							}
@@ -101,12 +104,29 @@ func (handler AttendanceHandler) Create(c *gin.Context) {
 						}
 					}
 				} else {
-					attendance.CreatedBy = GetCreator(c)
-					saveResult := handler.db.Create(&attendance)
-					if saveResult.RowsAffected > 0 {
-						c.JSON(http.StatusCreated, attendance)
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+						attendance.CreatedBy = GetCreator(c)
+						saveResult := handler.db.Create(&attendance)
+						if saveResult.RowsAffected > 0 {
+							c.JSON(http.StatusCreated, attendance)
+						} else {
+							deletedAttendance := m.Attendance{}
+							if handler.db.Unscoped().Where("id = ?", attendance.Id).First(&deletedAttendance).RowsAffected > 0 {
+								c.JSON(http.StatusOK, deletedAttendance)
+							}
+						}
 					} else {
-						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+						if (c.PostForm("for_deletion") == "true") {
+							existingAttendance := m.Attendance{}
+							if handler.db.Unscoped().Where("id = ?", attendance.Id).First(&existingAttendance).RowsAffected > 0 {
+								c.JSON(http.StatusOK, existingAttendance)		
+							} else {
+								attendance.DeletedAt = GetDeletedAt(c)
+								c.JSON(http.StatusOK, attendance)	
+							}
+						} else {
+							respond(http.StatusBadRequest, "Invalid action.", c, true)
+						}
 					}
 				}
 			} else {
