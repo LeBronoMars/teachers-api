@@ -76,9 +76,9 @@ func (handler StudentHandler) Create(c *gin.Context) {
 						handler.db.Where("id = ?", student.Id).First(&updatedStudent)
 						c.JSON(http.StatusOK, updatedStudent)
 					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						respond(http.StatusOK, result.Error.Error(), c, true)
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						respond(http.StatusOK, "There are no changes detected.", c , true)
 					}
 				}	
 			} else {

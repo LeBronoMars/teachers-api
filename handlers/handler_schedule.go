@@ -81,15 +81,18 @@ func (handler ScheduleHandler) Create(c *gin.Context) {
 					if result.RowsAffected > 0 {
 						c.JSON(http.StatusOK, updatedSchedule)
 					} else if result.Error != nil {
-						respond(http.StatusBadRequest, result.Error.Error(), c, true)
+						respond(http.StatusOK, result.Error.Error(), c, true)
 					} else {
-						respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+						respond(http.StatusOK, "There are no changes detected.", c , true)
 					}
 				} else {
 					if (c.PostForm("for_deletion") == "true") {
 						delete := handler.db.Delete(&existingscheduleById)
 						if delete.RowsAffected > 0 {
-							respond(http.StatusOK, "Record successfully deleted.", c, false)
+							deletedSchedule := m.Schedule{}
+							if handler.db.Unscoped().Where("id = ?", schedule.Id).First(&deletedSchedule).RowsAffected > 0 {
+								c.JSON(http.StatusOK, deletedSchedule)
+							}
 						} else {
 							respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 						}
@@ -98,12 +101,30 @@ func (handler ScheduleHandler) Create(c *gin.Context) {
 					}
 				}
 			} else {
-				schedule.CreatedBy = GetCreator(c)
-				saveResult := handler.db.Create(&schedule)
-				if saveResult.RowsAffected > 0 {
-					c.JSON(http.StatusCreated, schedule)
+
+				if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+					schedule.CreatedBy = GetCreator(c)
+					saveResult := handler.db.Create(&schedule)
+					if saveResult.RowsAffected > 0 {
+						c.JSON(http.StatusCreated, schedule)
+					} else {
+						deletedSchedule := m.Schedule{}
+						if handler.db.Unscoped().Where("id = ?", schedule.Id).First(&deletedSchedule).RowsAffected > 0 {
+							c.JSON(http.StatusOK, deletedSchedule)
+						}
+					}
 				} else {
-					respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+					if (c.PostForm("for_deletion") == "true") {
+						existingSchedule := m.Schedule{}
+						if handler.db.Unscoped().Where("id = ?", schedule.Id).First(&existingSchedule).RowsAffected > 0 {
+							c.JSON(http.StatusOK, existingSchedule)		
+						} else {
+							schedule.DeletedAt = GetDeletedAt(c)
+							c.JSON(http.StatusOK, schedule)	
+						}
+					} else {
+						respond(http.StatusBadRequest, "Invalid action.", c, true)
+					}
 				}
 			}
 		} else {
