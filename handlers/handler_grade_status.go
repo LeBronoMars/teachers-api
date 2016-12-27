@@ -89,15 +89,18 @@ func (handler GradeStatusHandler) Create(c *gin.Context) {
 							handler.db.Where("id = ?", gradeStatus.Id).First(&updatedGradeStatus)
 							c.JSON(http.StatusOK, updatedGradeStatus)
 						} else if result.Error != nil {
-							respond(http.StatusBadRequest, result.Error.Error(), c, true)
+							respond(http.StatusOK, result.Error.Error(), c, true)
 						} else {
-							respond(http.StatusBadRequest, "There are no changes detected.", c , true)
+							respond(http.StatusOK, "There are no changes detected.", c , true)
 						}
 					} else {
 						if (c.PostForm("for_deletion") == "true") {
 							delete := handler.db.Delete(&existingGradeStatus)
 							if delete.RowsAffected > 0 {
-								respond(http.StatusOK, "Record successfully deleted.", c, false)
+								deletedGradeStatus := m.GradeStatus{}
+								if handler.db.Unscoped().Where("id = ?", gradeStatus.Id).First(&deletedGradeStatus).RowsAffected > 0 {
+									c.JSON(http.StatusOK, deletedGradeStatus)
+								}
 							} else {
 								respond(http.StatusBadRequest, delete.Error.Error(), c, true)
 							}
@@ -106,12 +109,29 @@ func (handler GradeStatusHandler) Create(c *gin.Context) {
 						}
 					}
 				} else {
-					gradeStatus.CreatedBy = GetCreator(c)
-					saveResult := handler.db.Create(&gradeStatus)
-					if saveResult.RowsAffected > 0 {
-						c.JSON(http.StatusCreated, gradeStatus)
+					if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
+						gradeStatus.CreatedBy = GetCreator(c)
+						saveResult := handler.db.Create(&gradeStatus)
+						if saveResult.RowsAffected > 0 {
+							c.JSON(http.StatusCreated, gradeStatus)
+						} else {
+							deletedGradeStatus := m.GradeStatus{}
+							if handler.db.Unscoped().Where("id = ?", gradeStatus.Id).First(&deletedGradeStatus).RowsAffected > 0 {
+								c.JSON(http.StatusOK, deletedGradeStatus)
+							}
+						}
 					} else {
-						respond(http.StatusBadRequest, saveResult.Error.Error(), c, true)
+						if (c.PostForm("for_deletion") == "true") {
+							existingGradeStatus := m.Schedule{}
+							if handler.db.Unscoped().Where("id = ?", gradeStatus.Id).First(&existingGradeStatus).RowsAffected > 0 {
+								c.JSON(http.StatusOK, existingGradeStatus)		
+							} else {
+								gradeStatus.DeletedAt = GetDeletedAt(c)
+								c.JSON(http.StatusOK, gradeStatus)	
+							}
+						} else {
+							respond(http.StatusBadRequest, "Invalid action.", c, true)
+						}
 					}
 				}
 			} else {

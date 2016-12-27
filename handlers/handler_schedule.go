@@ -101,7 +101,6 @@ func (handler ScheduleHandler) Create(c *gin.Context) {
 					}
 				}
 			} else {
-
 				if (c.PostForm("for_deletion") == "" || c.PostForm("for_deletion") == "false") {
 					schedule.CreatedBy = GetCreator(c)
 					saveResult := handler.db.Create(&schedule)
